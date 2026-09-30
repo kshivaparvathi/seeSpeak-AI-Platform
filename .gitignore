@@ -1,0 +1,43 @@
+# Environment & Secrets
+.env
+.env.local
+*.env
+*.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+.next/
+
+# Python artifacts
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+
+# Database & User Uploads
+backend/see_speak.db
+*.db
+*.sqlite3
+backend/uploads/*
+!backend/uploads/.gitkeep
+test_quick_action_doc.txt
+user_prompt*.txt
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# OS & Editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
