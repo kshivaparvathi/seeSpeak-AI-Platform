@@ -84,6 +84,34 @@ class ConversationRepository:
                 CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id);
                 CREATE INDEX IF NOT EXISTS idx_files_conv ON conversation_files(conversation_id);
                 CREATE INDEX IF NOT EXISTS idx_conv_feature ON conversations(feature);
+
+                CREATE TABLE IF NOT EXISTS interview_sessions (
+                    id TEXT PRIMARY KEY,
+                    conversation_id TEXT UNIQUE,
+                    candidate_name TEXT DEFAULT '',
+                    target TEXT DEFAULT '',
+                    company_exam TEXT DEFAULT '',
+                    branch TEXT DEFAULT '',
+                    role TEXT DEFAULT '',
+                    interview_type TEXT DEFAULT 'Technical',
+                    topics TEXT DEFAULT '',
+                    difficulty TEXT DEFAULT 'Intermediate',
+                    status TEXT DEFAULT 'setup',
+                    start_time TEXT,
+                    end_time TEXT,
+                    current_question_index INTEGER DEFAULT 0,
+                    total_questions INTEGER DEFAULT 0,
+                    setup_data_json TEXT DEFAULT '{}',
+                    qa_records_json TEXT DEFAULT '[]',
+                    metrics_json TEXT DEFAULT '{}',
+                    strengths_json TEXT DEFAULT '[]',
+                    improvements_json TEXT DEFAULT '[]',
+                    concepts_to_revise_json TEXT DEFAULT '[]',
+                    next_step_recommendation TEXT DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_interview_conv ON interview_sessions(conversation_id);
             """)
 
             # Schema migration check: ensure conversation_files has feature_id column
@@ -343,5 +371,193 @@ class ConversationRepository:
 
         self.update_title(conv_id, title)
         return title
+
+    def create_or_get_interview_session(
+        self,
+        conversation_id: str,
+        candidate_name: str = "",
+        target: str = "",
+        company_exam: str = "",
+        branch: str = "",
+        role: str = "",
+        interview_type: str = "Technical",
+        topics: str = "",
+        difficulty: str = "Intermediate"
+    ) -> Dict[str, Any]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM interview_sessions WHERE conversation_id = ?", (conversation_id,))
+            row = cursor.fetchone()
+            if row:
+                res = dict(row)
+                res["setup_data"] = json.loads(res.get("setup_data_json") or "{}")
+                res["qa_records"] = json.loads(res.get("qa_records_json") or "[]")
+                res["metrics"] = json.loads(res.get("metrics_json") or "{}")
+                res["strengths"] = json.loads(res.get("strengths_json") or "[]")
+                res["improvements"] = json.loads(res.get("improvements_json") or "[]")
+                res["concepts_to_revise"] = json.loads(res.get("concepts_to_revise_json") or "[]")
+                return res
+
+            session_id = f"intv_{uuid.uuid4().hex[:12]}"
+            now = datetime.now(timezone.utc).isoformat()
+            setup_dict = {
+                "candidate_name": candidate_name,
+                "target": target,
+                "company_exam": company_exam,
+                "branch": branch,
+                "role": role,
+                "interview_type": interview_type,
+                "topics": topics,
+                "difficulty": difficulty
+            }
+            conn.execute(
+                """
+                INSERT INTO interview_sessions (
+                    id, conversation_id, candidate_name, target, company_exam,
+                    branch, role, interview_type, topics, difficulty, status,
+                    start_time, end_time, current_question_index, total_questions,
+                    setup_data_json, qa_records_json, metrics_json, strengths_json,
+                    improvements_json, concepts_to_revise_json, next_step_recommendation,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'setup', ?, NULL, 0, 0, ?, '[]', '{}', '[]', '[]', '[]', '', ?, ?)
+                """,
+                (
+                    session_id, conversation_id, candidate_name, target, company_exam,
+                    branch, role, interview_type, topics, difficulty, now,
+                    json.dumps(setup_dict), now, now
+                )
+            )
+
+            return {
+                "id": session_id,
+                "conversation_id": conversation_id,
+                "candidate_name": candidate_name,
+                "target": target,
+                "company_exam": company_exam,
+                "branch": branch,
+                "role": role,
+                "interview_type": interview_type,
+                "topics": topics,
+                "difficulty": difficulty,
+                "status": "setup",
+                "start_time": now,
+                "end_time": None,
+                "current_question_index": 0,
+                "total_questions": 0,
+                "setup_data": setup_dict,
+                "qa_records": [],
+                "metrics": {},
+                "strengths": [],
+                "improvements": [],
+                "concepts_to_revise": [],
+                "next_step_recommendation": "",
+                "created_at": now,
+                "updated_at": now
+            }
+
+    def get_interview_session(self, conv_or_session_id: str) -> Optional[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM interview_sessions WHERE id = ? OR conversation_id = ?",
+                (conv_or_session_id, conv_or_session_id)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            res = dict(row)
+            res["setup_data"] = json.loads(res.get("setup_data_json") or "{}")
+            res["qa_records"] = json.loads(res.get("qa_records_json") or "[]")
+            res["metrics"] = json.loads(res.get("metrics_json") or "{}")
+            res["strengths"] = json.loads(res.get("strengths_json") or "[]")
+            res["improvements"] = json.loads(res.get("improvements_json") or "[]")
+            res["concepts_to_revise"] = json.loads(res.get("concepts_to_revise_json") or "[]")
+            return res
+
+    def update_interview_session(self, conv_or_session_id: str, updates: Dict[str, Any]) -> bool:
+        now = datetime.now(timezone.utc).isoformat()
+        current = self.get_interview_session(conv_or_session_id)
+        if not current:
+            return False
+
+        fields = []
+        params = []
+        for k, v in updates.items():
+            if k in ["setup_data", "qa_records", "metrics", "strengths", "improvements", "concepts_to_revise"]:
+                fields.append(f"{k}_json = ?")
+                params.append(json.dumps(v))
+            elif k in [
+                "candidate_name", "target", "company_exam", "branch", "role",
+                "interview_type", "topics", "difficulty", "status", "start_time",
+                "end_time", "current_question_index", "total_questions", "next_step_recommendation"
+            ]:
+                fields.append(f"{k} = ?")
+                params.append(v)
+
+        if not fields:
+            return False
+
+        fields.append("updated_at = ?")
+        params.append(now)
+        params.append(current["id"])
+
+        with self._get_connection() as conn:
+            conn.execute(
+                f"UPDATE interview_sessions SET {', '.join(fields)} WHERE id = ?",
+                tuple(params)
+            )
+        return True
+
+    def record_interview_qa(
+        self,
+        conv_or_session_id: str,
+        question: str,
+        answer: str,
+        evaluation: Optional[Dict[str, Any]] = None,
+        better_answer: str = "",
+        communication_feedback: str = ""
+    ) -> Dict[str, Any]:
+        session = self.get_interview_session(conv_or_session_id)
+        if not session:
+            return {}
+
+        qa_records = session.get("qa_records", [])
+        q_idx = len(qa_records) + 1
+        record = {
+            "index": q_idx,
+            "question": question,
+            "answer": answer,
+            "evaluation": evaluation or {},
+            "better_answer": better_answer,
+            "communication_feedback": communication_feedback,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        qa_records.append(record)
+
+        self.update_interview_session(
+            session["id"],
+            {
+                "qa_records": qa_records,
+                "current_question_index": q_idx,
+                "total_questions": len(qa_records)
+            }
+        )
+        return record
+
+    def list_interview_sessions(self, limit: int = 30) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM interview_sessions ORDER BY updated_at DESC LIMIT ?",
+                (limit,)
+            )
+            rows = cursor.fetchall()
+            results = []
+            for r in rows:
+                item = dict(r)
+                item["setup_data"] = json.loads(item.get("setup_data_json") or "{}")
+                item["metrics"] = json.loads(item.get("metrics_json") or "{}")
+                results.append(item)
+            return results
 
 conversation_repository = ConversationRepository()

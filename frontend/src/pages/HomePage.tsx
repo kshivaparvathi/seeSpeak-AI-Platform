@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FEATURES, MAIN_FEATURE } from '../config/features';
 import { SupportedLanguage, Conversation, Message, ConversationFile } from '../types';
 import { getLanguageInfo } from '../config/languages';
@@ -14,7 +14,8 @@ import {
   Sparkles, 
   Compass,
   ArrowRight,
-  PlusCircle
+  PlusCircle,
+  Zap
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -37,8 +38,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   onConversationCreated,
   initialPrompt,
 }) => {
-  const langInfo = getLanguageInfo(selectedLanguage);
-
   const [activeConvId, setActiveConvId] = useState<string | undefined>(conversationId);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -54,7 +53,6 @@ export const HomePage: React.FC<HomePageProps> = ({
       const res = await fetch(`/api/conversations/${id}`);
       if (res.ok) {
         const data: Conversation = await res.json();
-        // Ensure belongs to main
         const norm = (data.feature || '').toLowerCase().replace('feature/', '');
         if (norm && norm !== 'main' && norm !== 'general' && norm !== 'home' && norm !== 'chat') {
           setConversation(null);
@@ -135,7 +133,6 @@ export const HomePage: React.FC<HomePageProps> = ({
     setError(null);
     setStreamingText('');
 
-    // Optimistically add user message (displays full complete text)
     const tempUserMsg: Message = {
       id: `temp_${Date.now()}`,
       conversation_id: activeConvId || '',
@@ -147,7 +144,6 @@ export const HomePage: React.FC<HomePageProps> = ({
 
     try {
       let currentId = activeConvId;
-      // If no conversation exists yet for main chatbot, create one
       if (!currentId) {
         const createRes = await fetch('/api/conversations', {
           method: 'POST',
@@ -166,7 +162,6 @@ export const HomePage: React.FC<HomePageProps> = ({
         }
       }
 
-      // Stream response from backend with language detection
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -217,7 +212,6 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
   };
 
-  // If initialPrompt provided, trigger once
   useEffect(() => {
     if (initialPrompt && messages.length === 0 && !isLoading) {
       handleSendMessage(initialPrompt);
@@ -227,18 +221,18 @@ export const HomePage: React.FC<HomePageProps> = ({
   const getFeatureIcon = (id: string) => {
     switch (id) {
       case 'document-analysis':
-        return <FileText size={15} className="text-blue-400" />;
+        return <FileText size={18} className="text-blue-400" />;
       case 'visual-intelligence':
-        return <ImageIcon size={15} className="text-purple-400" />;
+        return <ImageIcon size={18} className="text-purple-400" />;
       case 'ai-interview':
-        return <Mic size={15} className="text-rose-400" />;
+        return <Mic size={18} className="text-rose-400" />;
       case 'customer-support':
-        return <Headphones size={15} className="text-emerald-400" />;
+        return <Headphones size={18} className="text-emerald-400" />;
       case 'video-audio-review':
-        return <Video size={15} className="text-amber-400" />;
+        return <Video size={18} className="text-amber-400" />;
       case 'data-study':
       default:
-        return <BarChart3 size={15} className="text-indigo-400" />;
+        return <BarChart3 size={18} className="text-indigo-400" />;
     }
   };
 
@@ -253,18 +247,17 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-bold text-white tracking-tight">seeSpeak AI</h1>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono">
                 Multimodal Assistant
               </span>
             </div>
             <p className="text-[11px] text-slate-400 hidden sm:block">
-              Type or speak any request directly, or jump into a specialized workspace below
+              Intelligent conversational workspace with 6 specialized AI modules
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* New Chat Reset Button */}
           {messages.length > 0 && (
             <button
               onClick={() => {
@@ -293,46 +286,110 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </header>
 
-      {/* Secondary Specialized Workspaces Ribbon (Clean, secondary, non-dominating) */}
-      <div className="px-4 py-2 bg-slate-950/90 border-b border-slate-800/50 flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-800 shrink-0">
-        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono shrink-0 mr-1 hidden sm:inline">
-          Specialized Workspaces:
-        </span>
-        {FEATURES.map((feat) => (
-          <button
-            key={feat.id}
-            onClick={() => onNavigate(feat.route)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800/80 hover:border-slate-700 text-xs text-slate-300 hover:text-white transition-all whitespace-nowrap cursor-pointer shrink-0 hover:shadow-md group"
-          >
-            {getFeatureIcon(feat.id)}
-            <span className="font-medium">{feat.title}</span>
-            <ArrowRight size={11} className="text-slate-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
-          </button>
-        ))}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-y-auto">
+        {/* Six Specialized Workspace Cards Grid — Always Prominently Displayed on Empty State */}
+        {messages.length === 0 && !streamingText && (
+          <div className="max-w-5xl mx-auto w-full px-4 pt-6 pb-2 shrink-0 animate-fadeIn">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles size={15} className="text-indigo-400" />
+                <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
+                  Specialized Workspaces
+                </h2>
+              </div>
+              <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
+                Isolated context, files & models
+              </span>
+            </div>
+
+            {/* Responsive 6-Card Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mb-2">
+              {FEATURES.map((feature) => (
+                <button
+                  key={feature.id}
+                  onClick={() => onNavigate(feature.route)}
+                  className={`p-4 rounded-2xl bg-gradient-to-br ${feature.colorScheme.bg} bg-slate-900/80 border ${feature.colorScheme.border} hover:border-indigo-400/50 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl group flex flex-col justify-between text-left cursor-pointer shadow-md`}
+                >
+                  <div>
+                    <div className="flex items-start justify-between mb-2.5 w-full">
+                      <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60 shadow-inner group-hover:scale-105 transition-transform">
+                        {getFeatureIcon(feature.id)}
+                      </div>
+                      <div className="w-6 h-6 rounded-lg bg-slate-800/40 border border-slate-700/40 flex items-center justify-center text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all">
+                        <ArrowRight size={12} />
+                      </div>
+                    </div>
+
+                    <h3 className="font-bold text-white text-sm group-hover:text-indigo-300 transition-colors">
+                      {feature.title}
+                    </h3>
+                    <div className="text-[10px] font-mono text-indigo-400/80 mb-1">
+                      {feature.tagline}
+                    </div>
+                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span>Isolated Mode</span>
+                    </span>
+                    <span className="text-indigo-400 group-hover:translate-x-0.5 transition-transform font-mono text-xs font-semibold">
+                      Launch →
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Secondary Ribbon if messages are active */}
+        {messages.length > 0 && (
+          <div className="px-4 py-2 bg-slate-950/90 border-b border-slate-800/50 flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-800 shrink-0">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono shrink-0 mr-1 hidden sm:inline">
+              Jump To Workspace:
+            </span>
+            {FEATURES.map((feat) => (
+              <button
+                key={feat.id}
+                onClick={() => onNavigate(feat.route)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800/80 hover:border-slate-700 text-xs text-slate-300 hover:text-white transition-all whitespace-nowrap cursor-pointer shrink-0 hover:shadow-md group"
+              >
+                {getFeatureIcon(feat.id)}
+                <span className="font-medium">{feat.title}</span>
+                <ArrowRight size={11} className="text-slate-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Main Chatbot Stage */}
+        <div className="flex-1 flex flex-col overflow-hidden min-h-[300px]">
+          <MultimodalChat
+            conversation={conversation}
+            messages={messages}
+            attachedFiles={attachedFiles}
+            onSendMessage={handleSendMessage}
+            onFileUpload={handleFileUpload}
+            selectedLanguage={selectedLanguage}
+            onSelectLanguage={onSelectLanguage}
+            isLoading={isLoading}
+            streamingText={streamingText}
+            error={error}
+            featureId={MAIN_FEATURE.id}
+            featureTitle="General AI Chatbot"
+            featureDescription="Type a question directly, speak via microphone, or upload documents to get grounded multimodal answers in any language."
+            samplePrompts={MAIN_FEATURE.samplePrompts}
+            onOpenVoice={() => setIsVoiceOpen(true)}
+          />
+        </div>
       </div>
 
-      {/* Main Chatbot Stage */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <MultimodalChat
-          conversation={conversation}
-          messages={messages}
-          attachedFiles={attachedFiles}
-          onSendMessage={handleSendMessage}
-          onFileUpload={handleFileUpload}
-          selectedLanguage={selectedLanguage}
-          onSelectLanguage={onSelectLanguage}
-          isLoading={isLoading}
-          streamingText={streamingText}
-          error={error}
-          featureId={MAIN_FEATURE.id}
-          featureTitle="What can I help you explore or build today?"
-          featureDescription="Type a question, speak naturally using the microphone, attach documents or images, or choose a prompt starter below."
-          samplePrompts={MAIN_FEATURE.samplePrompts}
-          onOpenVoice={() => setIsVoiceOpen(true)}
-        />
-      </div>
-
-      {/* Gemini Live Voice Streaming Modal */}
+      {/* Voice Modal */}
       <VoiceModal
         isOpen={isVoiceOpen}
         onClose={() => {

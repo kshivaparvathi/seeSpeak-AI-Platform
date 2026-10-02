@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.routes.history_routes import router as history_router
 from backend.routes.upload_routes import router as upload_router, UPLOAD_DIR
 from backend.routes.chat_routes import router as chat_router
+from backend.routes.interview_routes import router as interview_router
 from backend.routes.websocket_routes import router as websocket_router
 from backend.utils.logging import logger
 
@@ -39,6 +40,7 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.include_router(history_router)
 app.include_router(upload_router)
 app.include_router(chat_router)
+app.include_router(interview_router)
 app.include_router(websocket_router)
 
 @app.get("/health")
