@@ -9,6 +9,9 @@ from backend.utils.logging import logger
 DB_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "see_speak.db")
 
 FEATURE_MAPPING = {
+    "main": "main",
+    "general": "main",
+    "home": "main",
     "document": "document-analysis",
     "document-analysis": "document-analysis",
     "vision": "visual-intelligence",

@@ -1,5 +1,40 @@
 import { FeatureConfig } from '../types';
 
+export const MAIN_FEATURE: FeatureConfig = {
+  id: 'main',
+  title: 'seeSpeak AI',
+  tagline: 'Multimodal Intelligent Conversational Engine',
+  description: 'Ask any question directly, analyze documents, inspect screenshots, practice interviews, or examine data with grounded AI in any language.',
+  route: '/',
+  aliases: ['main', 'general', 'home', 'chat'],
+  iconName: 'Sparkles',
+  colorScheme: {
+    bg: 'from-indigo-600/15 via-purple-900/10 to-transparent',
+    border: 'border-indigo-500/20 hover:border-indigo-400/50',
+    text: 'text-indigo-400',
+    glow: 'shadow-indigo-500/10',
+    accent: '#6366f1',
+  },
+  supportedMimeTypes: [
+    'application/pdf',
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'text/plain',
+    'text/markdown',
+    'text/csv',
+    'audio/mpeg',
+    'audio/wav',
+    'video/mp4'
+  ],
+  samplePrompts: [
+    { text: 'Explain Java and tell me why Java is platform independent', langHint: '💡 Concept' },
+    { text: 'Summarize this PDF document in Telugu', langHint: '🇮🇳 Telugu' },
+    { text: 'Analyze this image error and give the exact fix', langHint: '👁️ Vision' },
+    { text: 'Help me prepare for a software engineer interview', langHint: '🎤 Mock Interview' },
+  ],
+};
+
 export const FEATURES: FeatureConfig[] = [
   {
     id: 'document-analysis',
@@ -56,10 +91,10 @@ export const FEATURES: FeatureConfig[] = [
   {
     id: 'ai-interview',
     title: 'AI Interview Practice',
-    tagline: 'Real-Time Spoken Mock Interviews',
-    description: 'Engage in realistic spoken interviews with live low-latency speech, natural barge-in interruptions, and instant feedback.',
+    tagline: 'Interactive Mock Interviewer & Feedback',
+    description: 'Engage in structured mock interviews with one-by-one questions, answer evaluations (Correctness, Clarity, Communication), and spoken practice.',
     route: '/ai-interview',
-    aliases: ['interview'],
+    aliases: ['interview', 'feature/interview'],
     iconName: 'Mic',
     colorScheme: {
       bg: 'from-rose-600/15 via-rose-900/10 to-transparent',
@@ -68,20 +103,27 @@ export const FEATURES: FeatureConfig[] = [
       glow: 'shadow-rose-500/10',
       accent: '#f43f5e',
     },
-    supportedMimeTypes: [],
+    supportedMimeTypes: [
+      'application/pdf',
+      'text/plain',
+      'text/markdown',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ],
     samplePrompts: [
-      { text: 'Start Software Engineer Behavioral Interview', langHint: '🎤 Live Voice' },
-      { text: 'Ask me System Design questions', langHint: '🎤 Voice' },
-      { text: 'Practice Frontend React interview', langHint: '🎤 Spoken' },
+      { text: 'Start a Software Engineer mock interview for Java and Spring Boot', langHint: '🎤 Interview' },
+      { text: 'Can you explain Java and tell me why Java is platform independent?', langHint: '💡 Concept' },
+      { text: 'Ask me a behavioral STAR-method interview question', langHint: '👔 Behavioral' },
+      { text: 'Conduct frontend React interview with questions one by one', langHint: '💻 Frontend' },
     ],
   },
   {
     id: 'customer-support',
     title: 'Customer Support Agent',
-    tagline: 'Empathetic Spoken Voice Service',
-    description: 'Experience an empathetic, spoken customer support agent ready to solve order inquiries, clarify technical problems, and assist in real-time.',
+    tagline: 'Empathetic Troubleshooting & Account Care',
+    description: 'Solve technical, billing, subscription, or order issues with step-by-step resolution pathways and screenshot inspection.',
     route: '/customer-support',
-    aliases: ['support'],
+    aliases: ['support', 'feature/support'],
     iconName: 'Headphones',
     colorScheme: {
       bg: 'from-emerald-600/15 via-emerald-900/10 to-transparent',
@@ -90,10 +132,18 @@ export const FEATURES: FeatureConfig[] = [
       glow: 'shadow-emerald-500/10',
       accent: '#10b981',
     },
-    supportedMimeTypes: [],
+    supportedMimeTypes: [
+      'image/png',
+      'image/jpeg',
+      'image/webp',
+      'application/pdf',
+      'text/plain'
+    ],
     samplePrompts: [
-      { text: 'Hello, I have an inquiry about my recent service subscription', langHint: '🎧 Support' },
-      { text: 'I need help troubleshooting an account issue', langHint: '🎧 Voice' },
+      { text: 'I was charged twice for my subscription this month, please help me resolve it', langHint: '💳 Billing' },
+      { text: 'My API endpoint is returning 403 Forbidden errors when making requests', langHint: '🛠️ Technical' },
+      { text: 'I need to update my registered billing email and company VAT ID', langHint: '👤 Account' },
+      { text: 'Help me troubleshoot slow connection speeds step-by-step', langHint: '🎧 Support' },
     ],
   },
   {
@@ -149,13 +199,16 @@ export const FEATURES: FeatureConfig[] = [
 ];
 
 export function getFeatureConfig(idOrRoute: string): FeatureConfig {
-  if (!idOrRoute) return FEATURES[0];
+  if (!idOrRoute) return MAIN_FEATURE;
   const clean = idOrRoute.replace(/^\//, '').replace(/\/c\/.*$/, '').toLowerCase().trim();
+  if (!clean || clean === 'main' || clean === 'home' || clean === 'chat' || clean === 'general') {
+    return MAIN_FEATURE;
+  }
   const found = FEATURES.find(
     (f) =>
       f.id === clean ||
       f.route.replace(/^\//, '') === clean ||
       (f.aliases && f.aliases.includes(clean))
   );
-  return found || FEATURES[0];
+  return found || MAIN_FEATURE;
 }

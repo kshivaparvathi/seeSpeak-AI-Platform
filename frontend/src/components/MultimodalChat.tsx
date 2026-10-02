@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { Bot, User, Sparkles, AlertCircle, FileText, Check, Copy, Volume2 } from 'lucide-react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { Bot, User, Sparkles, AlertCircle, FileText, Check, Copy, Volume2, VolumeX } from 'lucide-react';
 import { Conversation, Message, SupportedLanguage, ConversationFile } from '../types';
 import { FileCard } from './FileCard';
 import { FileUpload } from './FileUpload';
 import { ChatComposer } from './ChatComposer';
+import { speakText, stopSpeaking, detectLanguageFromText, isSpeaking } from '../utils/speech';
 
 interface MultimodalChatProps {
   conversation: Conversation | null;
@@ -21,6 +22,7 @@ interface MultimodalChatProps {
   featureDescription: string;
   samplePrompts?: { text: string; langHint: string }[];
   onOpenVoice?: () => void;
+  autoSpeakDefault?: boolean;
 }
 
 export const MultimodalChat: React.FC<MultimodalChatProps> = ({
@@ -39,14 +41,52 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
   featureDescription,
   samplePrompts = [],
   onOpenVoice,
+  autoSpeakDefault = false,
 }) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [isVoiceOutputEnabled, setIsVoiceOutputEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('seespeak_voice_output');
+    return saved !== null ? saved === 'true' : autoSpeakDefault;
+  });
 
+  const lastSpokenIdRef = useRef<string | null>(null);
+
+  const toggleVoiceOutput = useCallback(() => {
+    setIsVoiceOutputEnabled((prev) => {
+      const next = !prev;
+      localStorage.setItem('seespeak_voice_output', String(next));
+      if (!next) {
+        stopSpeaking();
+        setSpeakingId(null);
+      }
+      return next;
+    });
+  }, []);
+
+  // Scroll to bottom on updates
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingText, isLoading]);
+
+  // Handle Automatic Voice Playback when new assistant message completes
+  useEffect(() => {
+    if (!isVoiceOutputEnabled || isLoading || streamingText) return;
+
+    if (messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === 'assistant' && lastMsg.id !== lastSpokenIdRef.current) {
+        lastSpokenIdRef.current = lastMsg.id;
+        const lang = detectLanguageFromText(lastMsg.content, selectedLanguage);
+        speakText(lastMsg.content, lang, {
+          onStart: () => setSpeakingId(lastMsg.id),
+          onEnd: () => setSpeakingId(null),
+          onError: () => setSpeakingId(null),
+        });
+      }
+    }
+  }, [messages, isLoading, streamingText, isVoiceOutputEnabled, selectedLanguage]);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -55,19 +95,19 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
   };
 
   const handleSpeak = (text: string, id: string) => {
-    if ('speechSynthesis' in window) {
-      if (speakingId === id) {
-        window.speechSynthesis.cancel();
-        setSpeakingId(null);
-        return;
-      }
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.onend = () => setSpeakingId(null);
-      utterance.onerror = () => setSpeakingId(null);
-      setSpeakingId(id);
-      window.speechSynthesis.speak(utterance);
+    if (speakingId === id || isSpeaking()) {
+      stopSpeaking();
+      setSpeakingId(null);
+      return;
     }
+
+    const lang = detectLanguageFromText(text, selectedLanguage);
+    setSpeakingId(id);
+    speakText(text, lang, {
+      onStart: () => setSpeakingId(id),
+      onEnd: () => setSpeakingId(null),
+      onError: () => setSpeakingId(null),
+    });
   };
 
   // Check if any attached files have image previews
@@ -76,14 +116,14 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full max-w-5xl mx-auto w-full px-3 md:px-6 py-3 md:py-5 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full max-w-5xl mx-auto w-full px-3 md:px-6 py-3 md:py-4 overflow-hidden">
       {/* Attached Files Context Bar */}
       {attachedFiles.length > 0 && (
         <div className="mb-3 bg-slate-900/80 border border-slate-800/90 rounded-2xl p-3 backdrop-blur-md shadow-sm">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-400 mb-2">
             <span className="flex items-center gap-1.5">
               <FileText size={14} className="text-indigo-400" />
-              <span>Workspace Files ({attachedFiles.length})</span>
+              <span>Workspace Grounded Files ({attachedFiles.length})</span>
             </span>
             <span className="text-[10px] text-emerald-400 font-mono">Isolated Context</span>
           </div>
@@ -112,7 +152,7 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
                   />
                 </div>
               ))}
-              <span className="text-[11px] text-slate-400 font-mono">Visual Target Active</span>
+              <span className="text-[11px] text-slate-400 font-mono">Target Grounded</span>
             </div>
           )}
         </div>
@@ -148,7 +188,7 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
             {samplePrompts.length > 0 && (
               <div className="w-full max-w-lg text-left mt-2">
                 <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 font-mono">
-                  Suggested Inquiries
+                  Suggested Prompts
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {samplePrompts.map((p, idx) => (
@@ -177,11 +217,12 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
               }`}
             >
               {msg.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5 shadow-sm">
                   <Bot size={17} />
                 </div>
               )}
 
+              {/* Message Bubble: Always displays the user's complete original question without fragmentation */}
               <div
                 className={`group relative max-w-[88%] md:max-w-[80%] px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap ${
                   msg.role === 'user'
@@ -191,32 +232,41 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
               >
                 {msg.content}
 
-                {/* Assistant Message Actions (Copy & Listen) */}
+                {/* Assistant Message Actions (Copy & Read Aloud) */}
                 {msg.role === 'assistant' && (
-                  <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-800/60 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-slate-800/60 text-slate-500 text-xs">
                     <button
                       onClick={() => handleCopy(msg.content, msg.id)}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] hover:text-white hover:bg-slate-800 cursor-pointer"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] hover:text-white hover:bg-slate-800 cursor-pointer transition-colors"
                       title="Copy response"
                     >
-                      {copiedId === msg.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                      {copiedId === msg.id ? (
+                        <Check size={12} className="text-emerald-400" />
+                      ) : (
+                        <Copy size={12} />
+                      )}
                       <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
                     </button>
 
                     <button
                       onClick={() => handleSpeak(msg.content, msg.id)}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] hover:text-white hover:bg-slate-800 cursor-pointer"
-                      title="Read aloud"
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] hover:text-white hover:bg-slate-800 cursor-pointer transition-colors ${
+                        speakingId === msg.id ? 'text-indigo-400 font-semibold' : ''
+                      }`}
+                      title={speakingId === msg.id ? 'Stop reading' : 'Read aloud with natural speech'}
                     >
-                      <Volume2 size={12} className={speakingId === msg.id ? 'text-indigo-400 animate-pulse' : ''} />
-                      <span>{speakingId === msg.id ? 'Stop' : 'Listen'}</span>
+                      <Volume2
+                        size={12}
+                        className={speakingId === msg.id ? 'text-indigo-400 animate-pulse' : ''}
+                      />
+                      <span>{speakingId === msg.id ? 'Stop Speaking' : 'Read Aloud'}</span>
                     </button>
                   </div>
                 )}
               </div>
 
               {msg.role === 'user' && (
-                <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 shrink-0 mt-0.5 shadow-sm">
                   <User size={17} />
                 </div>
               )}
@@ -262,7 +312,7 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
       </div>
 
       {/* Bottom Composer */}
-      <div className="mt-3 shrink-0">
+      <div className="mt-2 shrink-0">
         <ChatComposer
           onSendMessage={onSendMessage}
           onTriggerFileUpload={() => {
@@ -280,6 +330,8 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
           onSelectLanguage={onSelectLanguage}
           isLoading={isLoading}
           hasAttachedFiles={attachedFiles.length > 0}
+          isVoiceOutputEnabled={isVoiceOutputEnabled}
+          onToggleVoiceOutput={toggleVoiceOutput}
         />
       </div>
     </div>

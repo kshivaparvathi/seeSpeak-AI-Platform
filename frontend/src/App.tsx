@@ -213,7 +213,7 @@ export const App: React.FC = () => {
 
   // Start New Conversation strictly inside the current workspace
   const handleNewConversation = () => {
-    if (currentFeatureId) {
+    if (currentFeatureId && currentFeatureId !== 'main') {
       setActiveConversationByFeature((prev) => ({
         ...prev,
         [currentFeatureId]: undefined,
@@ -221,6 +221,11 @@ export const App: React.FC = () => {
       setInitialPrompt(undefined);
       navigate(`/${currentFeatureId}`);
     } else {
+      setActiveConversationByFeature((prev) => ({
+        ...prev,
+        main: undefined,
+      }));
+      setInitialPrompt(undefined);
       navigate('/');
     }
   };
@@ -241,10 +246,22 @@ export const App: React.FC = () => {
     if (currentFeatureId === 'ai-interview') {
       return (
         <InterviewSession
+          key={activeConversationId || 'new_interview'}
           onBack={() => navigate('/')}
           selectedLanguage={selectedLanguage}
+          onSelectLanguage={setSelectedLanguage}
           onSelectFeature={(r) => navigate(r)}
           onNewConversation={handleNewConversation}
+          conversationId={activeConversationId}
+          onConversationCreated={(newConv) => {
+            setActiveConversationByFeature((prev) => ({
+              ...prev,
+              'ai-interview': newConv.id,
+            }));
+            const targetFeature = filterByActiveFeature ? 'ai-interview' : undefined;
+            fetchConversations(searchQuery, targetFeature);
+          }}
+          initialPrompt={initialPrompt}
         />
       );
     }
@@ -252,15 +269,27 @@ export const App: React.FC = () => {
     if (currentFeatureId === 'customer-support') {
       return (
         <SupportSession
+          key={activeConversationId || 'new_support'}
           onBack={() => navigate('/')}
           selectedLanguage={selectedLanguage}
+          onSelectLanguage={setSelectedLanguage}
           onSelectFeature={(r) => navigate(r)}
           onNewConversation={handleNewConversation}
+          conversationId={activeConversationId}
+          onConversationCreated={(newConv) => {
+            setActiveConversationByFeature((prev) => ({
+              ...prev,
+              'customer-support': newConv.id,
+            }));
+            const targetFeature = filterByActiveFeature ? 'customer-support' : undefined;
+            fetchConversations(searchQuery, targetFeature);
+          }}
+          initialPrompt={initialPrompt}
         />
       );
     }
 
-    if (currentFeatureId) {
+    if (currentFeatureId && currentFeatureId !== 'main') {
       return (
         <FeatureWorkspace
           key={currentFeatureId} // Key ensures complete remount and state isolation
@@ -285,13 +314,25 @@ export const App: React.FC = () => {
       );
     }
 
-    // Default: Home Dashboard
+    // Default: Chatbot-First Home Assistant
     return (
       <HomePage
+        key={activeConversationByFeature['main'] || routeConversationId || 'home_main'}
         onNavigate={navigate}
         selectedLanguage={selectedLanguage}
+        onSelectLanguage={setSelectedLanguage}
         onSelectPrompt={handleSelectPrompt}
         onShowIntro={() => setShowIntro(true)}
+        conversationId={routeConversationId || activeConversationByFeature['main']}
+        onConversationCreated={(newConv) => {
+          setActiveConversationByFeature((prev) => ({
+            ...prev,
+            main: newConv.id,
+          }));
+          const targetFeature = filterByActiveFeature ? 'main' : undefined;
+          fetchConversations(searchQuery, targetFeature);
+        }}
+        initialPrompt={initialPrompt}
       />
     );
   };

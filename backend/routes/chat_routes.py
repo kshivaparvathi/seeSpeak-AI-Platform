@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import asyncio
 from typing import Optional, List, Dict, Any
@@ -14,30 +15,95 @@ from backend.utils.logging import logger
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 GEMINI_CANDIDATE_MODELS = [
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
     "gemini-flash-lite-latest",
-    "gemini-flash-latest",
-    "gemini-3.5-flash",
-    "gemini-3.5-flash-lite",
-    "gemini-3.8-flash"
+    "gemini-flash-latest"
 ]
 
 LANGUAGE_PROMPT_INSTRUCTIONS = {
-    "te": "Respond naturally in fluent Telugu (తెలుగు). Use Telugu script. Keep code, programming syntax, proper nouns, and technical terms in English while explaining concepts thoroughly in Telugu.",
-    "hi": "Respond naturally in fluent Hindi (हिन्दी). Use Devanagari script. Keep programming syntax, variables, and technical terms in English, explaining concepts conversationally in Hindi.",
-    "kn": "Respond naturally in Kannada (ಕನ್ನಡ). Use Kannada script. Do NOT translate into English or Hindi. Preserve technical terms and keep programming code unchanged while explaining in Kannada.",
-    "mr": "Respond naturally in Marathi (मराठी). Use Devanagari script with proper Marathi grammar and vocabulary. Do NOT default to Hindi or English. Preserve code and technical terms.",
-    "ta": "Respond naturally in fluent Tamil (தமிழ்). Use Tamil script. Keep code and technical terminology intact while explaining concepts clearly in Tamil.",
-    "ml": "Respond naturally in fluent Malayalam (മലയാളം). Use Malayalam script. Retain programming code and technical terms in English while explaining in Malayalam.",
-    "bn": "Respond naturally in fluent Bengali (বাংলা). Use Bengali script. Retain technical terms and code while explaining in clear, articulate Bengali.",
-    "gu": "Respond naturally in fluent Gujarati (ગુજરાતી). Use Gujarati script. Keep technical terms and code in English while explaining concepts in Gujarati.",
-    "pa": "Respond naturally in fluent Punjabi (ਪੰਜਾਬੀ). Use Gurmukhi script. Retain technical terms in English while explaining in Punjabi.",
-    "ur": "Respond naturally in fluent Urdu (اردو). Use Urdu script. Keep code and technical terminology in English while providing clear Urdu explanations.",
+    "te": "Respond naturally in fluent Telugu (తెలుగు). Use authentic Telugu script. Keep programming code, syntax, and technical terms in English while explaining thoroughly in Telugu.",
+    "hi": "Respond naturally in fluent Hindi (हिन्दी). Use authentic Devanagari script. Keep programming syntax, variables, and technical terms in English, explaining concepts conversationally in Hindi.",
+    "kn": "Respond naturally in Kannada (ಕನ್ನಡ). Use authentic Kannada script. Preserve technical terms and keep programming code unchanged while explaining in Kannada.",
+    "mr": "Respond naturally in Marathi (मराठी). Use authentic Devanagari script with proper Marathi grammar and vocabulary. Preserve code and technical terms.",
+    "ta": "Respond naturally in fluent Tamil (தமிழ்). Use authentic Tamil script. Keep code and technical terminology intact while explaining concepts clearly in Tamil.",
+    "ml": "Respond naturally in fluent Malayalam (മലയാളം). Use authentic Malayalam script. Retain programming code and technical terms in English while explaining in Malayalam.",
+    "bn": "Respond naturally in fluent Bengali (বাংলা). Use authentic Bengali script. Retain technical terms and code while explaining in clear Bengali.",
+    "gu": "Respond naturally in fluent Gujarati (ગુજરાતી). Use authentic Gujarati script. Keep technical terms and code in English while explaining in Gujarati.",
+    "pa": "Respond naturally in fluent Punjabi (ਪੰਜਾਬੀ). Use authentic Gurmukhi script. Retain technical terms in English while explaining in Punjabi.",
+    "ur": "Respond naturally in fluent Urdu (اردو). Use authentic Urdu script. Keep code and technical terminology in English while explaining in Urdu.",
     "en": "Respond in clear, natural, professional English."
 }
+
+def detect_message_language(text: str, fallback_ui_lang: Optional[str] = "en") -> str:
+    """
+    Detects language following the user priority rule:
+    1. Explicit language requested in query
+    2. Character script detection (Telugu, Devanagari, Tamil, Kannada, etc.)
+    3. Standard English if Latin text without explicit language request
+    4. Fallback UI language only when ambiguous
+    """
+    if not text:
+        return fallback_ui_lang or "en"
+
+    t_lower = text.lower()
+
+    # 1. Explicit request keywords
+    if any(k in t_lower for k in ["in telugu", "telugu lo", "telugulo", "తెలుగులో", "తెలుగు"]):
+        return "te"
+    if any(k in t_lower for k in ["in hindi", "hindi me", "hindime", "हिंदी में", "हिन्दी में", "हिंदी", "हिन्दी"]):
+        return "hi"
+    if any(k in t_lower for k in ["in kannada", "kannada dalli", "ಕನ್ನಡದಲ್ಲಿ", "ಕನ್ನಡ"]):
+        return "kn"
+    if any(k in t_lower for k in ["in marathi", "marathi madhye", "मराठीत", "मराठी"]):
+        return "mr"
+    if any(k in t_lower for k in ["in tamil", "tamilil", "தமிழில்", "தமிழ்"]):
+        return "ta"
+    if any(k in t_lower for k in ["in malayalam", "malayalamil", "മലയാളത്തിൽ", "മലയാളം"]):
+        return "ml"
+    if any(k in t_lower for k in ["in bengali", "in bangla", "বাংলায়", "বাংলা"]):
+        return "bn"
+    if any(k in t_lower for k in ["in gujarati", "ગુજરાતીમાં", "ગુજરાતી"]):
+        return "gu"
+    if any(k in t_lower for k in ["in punjabi", "ਪੰਜਾਬੀ ਵਿੱਚ", "ਪੰਜਾਬੀ"]):
+        return "pa"
+    if any(k in t_lower for k in ["in urdu", "اردو میں", "اردو"]):
+        return "ur"
+    if any(k in t_lower for k in ["in english", "english lo", "english me"]):
+        return "en"
+
+    # 2. Character Script Detection
+    if re.search(r'[\u0C00-\u0C7F]', text):
+        return "te"
+    if re.search(r'[\u0C80-\u0CFF]', text):
+        return "kn"
+    if re.search(r'[\u0B80-\u0BFF]', text):
+        return "ta"
+    if re.search(r'[\u0D00-\u0D7F]', text):
+        return "ml"
+    if re.search(r'[\u0980-\u09FF]', text):
+        return "bn"
+    if re.search(r'[\u0A80-\u0AFF]', text):
+        return "gu"
+    if re.search(r'[\u0A00-\u0A7F]', text):
+        return "pa"
+    if re.search(r'[\u0600-\u06FF]', text):
+        return "ur"
+    if re.search(r'[\u0900-\u097F]', text):
+        if any(w in text for w in ["आहे", "नाही", "कसे", "काय", "करावे", "माहिती", "द्या", "सांगा", "स्पष्टीकरण"]) or "ळ" in text:
+            return "mr"
+        return "hi"
+
+    # 3. Standard Latin text without explicit override -> English!
+    if re.search(r'[a-zA-Z]', text):
+        return "en"
+
+    return fallback_ui_lang or "en"
 
 PROMPTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "core", "prompts")
 
 FEATURE_PROMPT_FILES = {
+    "main": "main_assistant.md",
     "document-analysis": "document_analysis.md",
     "visual-intelligence": "visual_intelligence.md",
     "ai-interview": "ai_interview.md",
@@ -48,15 +114,15 @@ FEATURE_PROMPT_FILES = {
 
 def get_feature_system_prompt(feature_id: str) -> str:
     canonical = normalize_feature_id(feature_id)
-    filename = FEATURE_PROMPT_FILES.get(canonical, "document_analysis.md")
+    filename = FEATURE_PROMPT_FILES.get(canonical, "main_assistant.md")
     path = os.path.join(PROMPTS_DIR, filename)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             return f.read().strip()
-    return "You are an advanced, specialized multimodal AI assistant."
+    return "You are seeSpeak AI, an advanced, specialized multimodal AI assistant."
 
 class ChatMessageRequest(BaseModel):
-    conversation_id: str
+    conversation_id: Optional[str] = None
     message: str
     language: Optional[str] = "en"
     feature: Optional[str] = "document-analysis"
@@ -110,7 +176,7 @@ def build_file_part(file_record: Dict[str, Any]) -> Optional[Any]:
 @router.post("")
 async def send_chat_message(req: ChatMessageRequest):
     req_feature = normalize_feature_id(req.feature_id or req.feature)
-    conv = conversation_repository.get_conversation(req.conversation_id)
+    conv = conversation_repository.get_conversation(req.conversation_id) if req.conversation_id else None
     if not conv:
         # Auto-create if not found strictly with the requested feature
         conv = conversation_repository.create_conversation(
@@ -148,24 +214,25 @@ async def send_chat_message(req: ChatMessageRequest):
         conversation_repository.add_message(req.conversation_id, "assistant", offline_reply)
         return {"response": offline_reply, "conversation_id": req.conversation_id}
 
-    # Build feature-isolated system instruction
+    # Build feature-isolated system instruction with intelligent language detection
     feature_prompt = get_feature_system_prompt(conv_feature)
-    lang_code = req.language or conv.get("language", "en")
+    detected_lang = detect_message_language(req.message, fallback_ui_lang=req.language or conv.get("language", "en"))
     lang_instruction = LANGUAGE_PROMPT_INSTRUCTIONS.get(
-        lang_code,
-        f"Respond in language code '{lang_code}'."
+        detected_lang,
+        f"Respond in clear, natural {detected_lang}."
     )
 
     system_instruction = (
         f"{feature_prompt}\n\n"
-        f"FEATURE CONTEXT: {conv_feature.upper()}\n"
-        f"LANGUAGE REQUIREMENT: {lang_instruction}\n"
+        f"WORKSPACE DOMAIN: {conv_feature.upper()}\n"
+        f"TARGET RESPONSE LANGUAGE: {detected_lang.upper()} ({lang_instruction})\n\n"
         "STRICT INSTRUCTIONS:\n"
-        "1. COMPLETE CONTEXT ISOLATION: Answer strictly based ONLY on the attached files and conversation history belonging to this specific workspace. Do NOT reference outside materials, past sessions, or other feature domains.\n"
-        "2. GROUNDING: If files are attached, analyze and answer strictly based on the actual contents of the uploaded files. Do NOT provide generic 3-step placeholder answers. Give concrete, detailed, accurate explanations.\n"
-        "3. SCRIPT FIDELITY: When responding in Indian languages (Telugu, Hindi, Kannada, Marathi, Tamil, Bengali, Malayalam, Gujarati, Punjabi, Urdu), write exclusively in authentic native script.\n"
-        "4. CODE PRESERVATION: Preserve programming code, syntax, identifiers, and markdown formatting in original English without translating code snippets.\n"
-        "5. QUICK ACTIONS & STUDY ADAPTATION: When requested for Exam Prep, Short Notes, Important Points, Summarize, Step-by-Step, Viva Questions, or Depth Level (Light, Moderate, Detailed), format your response with the exact requested academic structure, bold headings, and grounded bullet points."
+        "1. MATCH USER QUERY LANGUAGE: Respond primarily in the target language identified above. If the user asked in English (e.g., 'Explain Java'), respond in English. If the user asked in Telugu, respond in Telugu. If the user asked in Hindi, respond in Hindi. Never force an unrequested language.\n"
+        "2. COMPLETE CONTEXT ISOLATION: Answer strictly based ONLY on the attached files and conversation history belonging to this specific workspace. Do NOT reference outside materials, past sessions, or other feature domains.\n"
+        "3. GROUNDING: If files are attached, analyze and answer strictly based on the actual contents of the uploaded files. Do NOT provide generic 3-step placeholder answers. Give concrete, detailed, accurate explanations.\n"
+        "4. SCRIPT FIDELITY: When responding in Indian languages (Telugu, Hindi, Kannada, Marathi, Tamil, Bengali, Malayalam, Gujarati, Punjabi, Urdu), write exclusively in authentic native script.\n"
+        "5. CODE PRESERVATION: Preserve programming code, syntax, identifiers, and markdown formatting in original English without translating code snippets.\n"
+        "6. QUICK ACTIONS & STUDY ADAPTATION: When requested for Exam Prep, Short Notes, Important Points, Summarize, Step-by-Step, Viva Questions, or Depth Level (Light, Moderate, Detailed), format your response with the exact requested academic structure, bold headings, and grounded bullet points."
     )
 
     # Build contents strictly with files from THIS conversation only
@@ -199,7 +266,8 @@ async def send_chat_message(req: ChatMessageRequest):
                 system_instruction=system_instruction,
                 temperature=0.3
             )
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=model,
                 contents=contents,
                 config=config
@@ -225,14 +293,15 @@ async def send_chat_message(req: ChatMessageRequest):
     return {
         "response": full_response_text,
         "conversation_id": req.conversation_id,
-        "feature_id": conv_feature
+        "feature_id": conv_feature,
+        "detected_language": detected_lang
     }
 
 @router.post("/stream")
 async def stream_chat_message(req: ChatMessageRequest):
     """Streaming SSE endpoint with feature isolation."""
     req_feature = normalize_feature_id(req.feature_id or req.feature)
-    conv = conversation_repository.get_conversation(req.conversation_id)
+    conv = conversation_repository.get_conversation(req.conversation_id) if req.conversation_id else None
     if not conv:
         conv = conversation_repository.create_conversation(
             feature=req_feature,
@@ -265,19 +334,23 @@ async def stream_chat_message(req: ChatMessageRequest):
         return StreamingResponse(fallback_stream(), media_type="text/event-stream")
 
     feature_prompt = get_feature_system_prompt(conv_feature)
-    lang_code = req.language or conv.get("language", "en")
-    lang_instruction = LANGUAGE_PROMPT_INSTRUCTIONS.get(lang_code, f"Respond in {lang_code}.")
+    detected_lang = detect_message_language(req.message, fallback_ui_lang=req.language or conv.get("language", "en"))
+    lang_instruction = LANGUAGE_PROMPT_INSTRUCTIONS.get(
+        detected_lang,
+        f"Respond in clear, natural {detected_lang}."
+    )
 
     system_instruction = (
         f"{feature_prompt}\n\n"
-        f"FEATURE CONTEXT: {conv_feature.upper()}\n"
-        f"LANGUAGE REQUIREMENT: {lang_instruction}\n"
+        f"WORKSPACE DOMAIN: {conv_feature.upper()}\n"
+        f"TARGET RESPONSE LANGUAGE: {detected_lang.upper()} ({lang_instruction})\n\n"
         "STRICT INSTRUCTIONS:\n"
-        "1. COMPLETE CONTEXT ISOLATION: Answer strictly based ONLY on the attached files and conversation history belonging to this specific workspace.\n"
-        "2. GROUNDING: If files are attached, analyze and answer strictly based on the actual contents of the uploaded files. Do NOT provide generic 3-step placeholder answers.\n"
-        "3. SCRIPT FIDELITY: When responding in Indian languages (Telugu, Hindi, Kannada, Marathi, Tamil, Malayalam, Bengali, Gujarati, Punjabi, Urdu), write exclusively in authentic native script.\n"
-        "4. CODE PRESERVATION: Preserve programming code, syntax, and markdown formatting in original English without translating code.\n"
-        "5. QUICK ACTIONS & STUDY ADAPTATION: When requested for Exam Prep, Short Notes, Important Points, Summarize, Step-by-Step, Viva Questions, or Depth Level (Light, Moderate, Detailed), format your response with the exact requested academic structure, bold headings, and grounded bullet points."
+        "1. MATCH USER QUERY LANGUAGE: Respond primarily in the target language identified above. If the user asked in English (e.g., 'Explain Java'), respond in English. If the user asked in Telugu, respond in Telugu. If the user asked in Hindi, respond in Hindi. Never force an unrequested language.\n"
+        "2. COMPLETE CONTEXT ISOLATION: Answer strictly based ONLY on the attached files and conversation history belonging to this specific workspace. Do NOT reference outside materials or other feature domains.\n"
+        "3. GROUNDING: If files are attached, analyze and answer strictly based on the actual contents of the uploaded files. Do NOT provide generic 3-step placeholder answers. Give concrete, detailed, accurate explanations.\n"
+        "4. SCRIPT FIDELITY: When responding in Indian languages (Telugu, Hindi, Kannada, Marathi, Tamil, Bengali, Malayalam, Gujarati, Punjabi, Urdu), write exclusively in authentic native script.\n"
+        "5. CODE PRESERVATION: Preserve programming code, syntax, identifiers, and markdown formatting in original English without translating code snippets.\n"
+        "6. QUICK ACTIONS & STUDY ADAPTATION: When requested for Exam Prep, Short Notes, Important Points, Summarize, Step-by-Step, Viva Questions, or Depth Level (Light, Moderate, Detailed), format your response with the exact requested academic structure, bold headings, and grounded bullet points."
     )
 
     contents: List[Any] = []
@@ -332,6 +405,6 @@ async def stream_chat_message(req: ChatMessageRequest):
             role="assistant",
             content=full_text
         )
-        yield f"data: {json.dumps({'done': True, 'full_text': full_text, 'feature_id': conv_feature})}\n\n"
+        yield f"data: {json.dumps({'done': True, 'full_text': full_text, 'feature_id': conv_feature, 'detected_language': detected_lang})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

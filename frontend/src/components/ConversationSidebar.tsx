@@ -107,6 +107,11 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
   const getFeatureIcon = (feature: string) => {
     switch (feature) {
+      case 'main':
+      case 'general':
+      case 'home':
+      case 'chat':
+        return <Sparkles size={14} className="text-indigo-400 shrink-0" />;
       case 'document-analysis':
       case 'document':
         return <FileText size={14} className="text-blue-400 shrink-0" />;
