@@ -15,6 +15,7 @@ interface InterviewSoundBoxProps {
   idlePlaceholder?: string;
   startLabel?: string;
   stopLabel?: string;
+  embedded?: boolean;
 }
 
 export type SoundBoxState = 'idle' | 'listening' | 'processing' | 'ai_speaking' | 'error';
@@ -30,6 +31,7 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
   idlePlaceholder = 'Click [ START ] to speak',
   startLabel = '▶ START RECORDING',
   stopLabel = '■ STOP & SUBMIT',
+  embedded = false,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -310,9 +312,9 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
   }, [cleanupAudio]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto rounded-3xl p-5 md:p-6 bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl dark:shadow-2xl transition-all duration-200">
+    <div className={embedded ? "w-full flex flex-col" : "w-full max-w-2xl mx-auto rounded-3xl p-5 md:p-6 bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl dark:shadow-2xl transition-all duration-200"}>
       {/* Sound Box Top Bar: Status & Duration */}
-      <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+      <div className="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800/80 pb-2.5">
         <div className="flex items-center gap-2">
           {/* Animated Status Indicator Dot */}
           <span className="relative flex h-3 w-3">
@@ -353,7 +355,7 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
         {/* Live Timer or Language Pill */}
         <div className="flex items-center gap-2">
           {isRecording ? (
-            <span className="px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-mono text-xs font-bold animate-pulse">
+            <span className="px-3 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-mono text-xs font-bold animate-pulse">
               ⏱ {formatTimer(duration)}
             </span>
           ) : (
@@ -365,7 +367,7 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
       </div>
 
       {/* Central Audio Waveform Canvas */}
-      <div className="relative w-full h-24 sm:h-28 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800/80 flex items-center justify-center overflow-hidden mb-4 shadow-inner">
+      <div className={`relative w-full ${embedded ? 'h-16 sm:h-20' : 'h-24 sm:h-28'} bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800/80 flex items-center justify-center overflow-hidden mb-3 shadow-inner`}>
         <canvas
           ref={canvasRef}
           width={480}
@@ -390,7 +392,7 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
 
       {/* Live Interim Transcript or Error Prompt */}
       {interimText && (
-        <div className="mb-4 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-500/30 text-xs text-indigo-900 dark:text-indigo-200 font-medium animate-fadeIn">
+        <div className="mb-3 p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-500/30 text-xs text-indigo-900 dark:text-indigo-200 font-medium animate-fadeIn">
           <span className="block font-mono text-[10px] text-indigo-500 dark:text-indigo-400 uppercase mb-0.5">
             🎙 Spoken Transcript:
           </span>
@@ -399,31 +401,31 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
       )}
 
       {errorMessage && (
-        <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2 animate-fadeIn">
+        <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2 animate-fadeIn">
           <AlertCircle size={15} className="shrink-0 text-rose-500" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {/* Prominent Large START & STOP Buttons */}
-      <div className="flex items-center justify-center gap-4 pt-1">
+      <div className="flex items-center justify-center gap-3 pt-0.5">
         {!isRecording ? (
           <button
             onClick={handleStartRecording}
             disabled={disabled || isProcessing}
             type="button"
-            className="flex-1 max-w-xs flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`flex-1 max-w-xs flex items-center justify-center gap-2 ${embedded ? 'py-2.5 px-5' : 'py-3.5 px-6'} rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/30 hover:shadow-emerald-600/40 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            <Play size={17} className="fill-white" />
+            <Play size={15} className="fill-white" />
             <span>{startLabel}</span>
           </button>
         ) : (
           <button
             onClick={handleStopRecording}
             type="button"
-            className="flex-1 max-w-xs flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-sm shadow-lg shadow-rose-600/40 hover:shadow-rose-600/50 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer animate-pulse"
+            className={`flex-1 max-w-xs flex items-center justify-center gap-2 ${embedded ? 'py-2.5 px-5' : 'py-3.5 px-6'} rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-rose-600/40 hover:shadow-rose-600/50 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer animate-pulse`}
           >
-            <Square size={16} className="fill-white" />
+            <Square size={14} className="fill-white" />
             <span>{stopLabel}</span>
           </button>
         )}

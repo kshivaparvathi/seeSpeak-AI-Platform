@@ -28,10 +28,14 @@ LANGUAGE_NAMES = {
     "en": "English",
     "te": "Telugu",
     "hi": "Hindi",
-    "kn": "Kannada",
-    "mr": "Marathi",
     "ta": "Tamil",
+    "kn": "Kannada",
+    "ml": "Malayalam",
+    "mr": "Marathi",
     "bn": "Bengali",
+    "gu": "Gujarati",
+    "pa": "Punjabi",
+    "ur": "Urdu",
     "es": "Spanish",
     "fr": "French",
     "de": "German",
@@ -102,11 +106,24 @@ def load_prompt_for_mode(mode: str, conv_id: Optional[str] = None, language: str
         "- 'Create Revision Notes': Provide last-minute cheat sheet with formulas and checklist."
     )
 
-    lang_name = LANGUAGE_NAMES.get(language, "English")
-    lang_instruction = (
-        f"\n\nVOICE RESPONSE LANGUAGE REQUIREMENT: You MUST speak exclusively and naturally in {lang_name} ({language}). "
-        f"Keep your spoken answers concise, engaging, and clear for speech synthesis."
-    )
+    lang_name = LANGUAGE_NAMES.get(language, language.title() if language else "English")
+    if "interview" in m or m == "interviewer":
+        lang_instruction = (
+            f"\n\n### CANDIDATE SPOKEN LANGUAGE ADAPTATION & PRIORITY:\n"
+            f"The candidate selected {lang_name} as their preferred interview language.\n"
+            f"However, the candidate's actual spoken language has higher priority.\n"
+            f"Detect the language being used by the candidate during each response.\n"
+            f"Respond naturally in the candidate's current spoken language.\n"
+            f"If the candidate switches languages, follow the new language.\n"
+            f"If the candidate uses mixed languages, understand the mixed-language speech and respond naturally according to the dominant/current language.\n"
+            f"Only use the selected interview language when the spoken language cannot be confidently determined.\n"
+            f"Do not unnecessarily switch languages."
+        )
+    else:
+        lang_instruction = (
+            f"\n\nVOICE RESPONSE LANGUAGE REQUIREMENT: You MUST speak exclusively and naturally in {lang_name} ({language}). "
+            f"Keep your spoken answers concise, engaging, and clear for speech synthesis."
+        )
 
     return f"{base_prompt}{file_context}{quick_actions_guidance}{lang_instruction}"
 

@@ -4,14 +4,18 @@ import { InterviewSession } from './pages/InterviewSession';
 import { SupportSession } from './pages/SupportSession';
 import { ScreenAssistantSession } from './pages/ScreenAssistantSession';
 import { ResumeBuilderSession } from './pages/ResumeBuilderSession';
+import { PresentationMakerSession } from './pages/PresentationMakerSession';
 import { FeatureWorkspace } from './pages/FeatureWorkspace';
 import { ConversationSidebar } from './components/ConversationSidebar';
 import { AIIntro } from './components/AIIntro';
 import { Conversation, SupportedLanguage } from './types';
 import { getFeatureConfig } from './config/features';
-import { Menu } from 'lucide-react';
+import { Menu, Sparkles } from 'lucide-react';
+import { useAuth } from './context/AuthContext';
+import { AuthPage } from './pages/AuthPage';
 
 export const App: React.FC = () => {
+  const { user, status } = useAuth();
   // Show intro screen ONLY on explicit /intro route; root / directly opens Main Dashboard
   const [showIntro, setShowIntro] = useState<boolean>(() => {
     return window.location.pathname === '/intro';
@@ -105,7 +109,7 @@ export const App: React.FC = () => {
 
         const qs = params.toString();
         const url = qs ? `/api/conversations?${qs}` : '/api/conversations';
-        const res = await fetch(url);
+        const res = await fetch(url, { credentials: 'include' });
         if (res.ok) {
           const data: Conversation[] = await res.json();
           setConversations(data);
@@ -129,6 +133,7 @@ export const App: React.FC = () => {
       const res = await fetch(`/api/conversations/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ title: newTitle }),
       });
       if (res.ok) {
@@ -145,6 +150,7 @@ export const App: React.FC = () => {
     try {
       const res = await fetch(`/api/conversations/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       if (res.ok) {
         if (activeConversationId === id) {
@@ -177,6 +183,7 @@ export const App: React.FC = () => {
     try {
       const res = await fetch(`/api/conversations/${id}/favorite`, {
         method: 'POST',
+        credentials: 'include',
       });
       if (res.ok) {
         const data = await res.json();
@@ -337,6 +344,29 @@ export const App: React.FC = () => {
       );
     }
 
+    if (currentFeatureId === 'ai-presentation-maker') {
+      return (
+        <PresentationMakerSession
+          key={activeConversationId || 'new_presentation_maker'}
+          onBack={() => navigate('/')}
+          selectedLanguage={selectedLanguage}
+          onSelectLanguage={setSelectedLanguage}
+          onSelectFeature={(r) => navigate(r)}
+          onNewConversation={handleNewConversation}
+          conversationId={activeConversationId}
+          onConversationCreated={(newConv) => {
+            setActiveConversationByFeature((prev) => ({
+              ...prev,
+              'ai-presentation-maker': newConv.id,
+            }));
+            const targetFeature = filterByActiveFeature ? 'ai-presentation-maker' : undefined;
+            fetchConversations(searchQuery, targetFeature);
+          }}
+          initialPrompt={initialPrompt}
+        />
+      );
+    }
+
     if (currentFeatureId && currentFeatureId !== 'main') {
       return (
         <FeatureWorkspace
@@ -372,6 +402,8 @@ export const App: React.FC = () => {
         onSelectPrompt={handleSelectPrompt}
         onShowIntro={() => setShowIntro(true)}
         conversationId={routeConversationId || activeConversationByFeature['main']}
+        conversations={conversations}
+        onSelectConversation={handleSelectConversation}
         onConversationCreated={(newConv) => {
           setActiveConversationByFeature((prev) => ({
             ...prev,
@@ -385,7 +417,42 @@ export const App: React.FC = () => {
     );
   };
 
-  // Render Landing Page if first visit or requested
+  // 1. Loading State: Sleek branded seeSpeak AI splash loader (no flash of dashboard)
+  if (status === 'loading') {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans">
+        <div className="relative flex items-center justify-center mb-6">
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/25 animate-pulse">
+            <Sparkles size={32} />
+          </div>
+          <div className="absolute inset-0 rounded-3xl border-2 border-indigo-500/30 animate-ping" />
+        </div>
+        <div className="text-center space-y-1.5">
+          <h2 className="text-lg font-bold tracking-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            seeSpeak AI
+          </h2>
+          <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+            Verifying secure session...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Unauthenticated: Strict gating. Unregistered/unverified visitor NEVER sees the dashboard or workspaces!
+  if (status === 'unauthenticated') {
+    return (
+      <AuthPage
+        onSuccess={() => {
+          if (currentRoute === '/auth') {
+            navigate('/');
+          }
+        }}
+      />
+    );
+  }
+
+  // 3. Render Landing Page if requested
   if (showIntro) {
     return (
       <AIIntro
@@ -400,7 +467,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
+    <div className="flex h-screen w-screen overflow-hidden bg-gradient-to-br from-[#ebf2fc] via-[#f4f7fe] to-[#e8eefa] dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsSidebarOpen(true)}
@@ -426,6 +493,7 @@ export const App: React.FC = () => {
         onToggleFilterFeature={() => setFilterByActiveFeature(!filterByActiveFeature)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onNavigate={navigate}
       />
 
       {/* Main Workspace Stage */}

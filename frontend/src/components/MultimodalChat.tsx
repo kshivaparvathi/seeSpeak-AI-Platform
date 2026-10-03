@@ -4,6 +4,7 @@ import { Conversation, Message, SupportedLanguage, ConversationFile } from '../t
 import { FileCard } from './FileCard';
 import { FileUpload } from './FileUpload';
 import { ChatComposer } from './ChatComposer';
+import { FeatureVisual } from './FeatureVisual';
 import { speakText, stopSpeaking, detectLanguageFromText, isSpeaking } from '../utils/speech';
 
 interface MultimodalChatProps {
@@ -163,8 +164,8 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
         {messages.length === 0 && !streamingText ? (
           /* Empty Workspace State */
           <div className="h-full flex flex-col items-center justify-center text-center px-4 py-8">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3 shadow-inner">
-              <Sparkles size={22} />
+            <div className="mb-4 flex items-center justify-center">
+              <FeatureVisual featureId={featureId} size={64} />
             </div>
             <h2 className="text-xl md:text-2xl font-bold text-white mb-2 tracking-tight">
               {featureTitle}

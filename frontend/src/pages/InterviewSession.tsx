@@ -39,6 +39,44 @@ interface InterviewSessionProps {
   initialPrompt?: string;
 }
 
+export const INTERVIEW_LANGUAGES: { code: SupportedLanguage; name: string; nativeName: string; flag: string; speechCode: string }[] = [
+  { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸', speechCode: 'en-US' },
+  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', flag: '🇮🇳', speechCode: 'te-IN' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳', speechCode: 'hi-IN' },
+  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', flag: '🇮🇳', speechCode: 'ta-IN' },
+  { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ', flag: '🇮🇳', speechCode: 'kn-IN' },
+  { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം', flag: '🇮🇳', speechCode: 'ml-IN' },
+  { code: 'mr', name: 'Marathi', nativeName: 'मराठी', flag: '🇮🇳', speechCode: 'mr-IN' },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', flag: '🇮🇳', speechCode: 'bn-IN' },
+  { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', flag: '🇮🇳', speechCode: 'gu-IN' },
+  { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ', flag: '🇮🇳', speechCode: 'pa-IN' },
+  { code: 'ur', name: 'Urdu', nativeName: 'اردو', flag: '🇵🇰', speechCode: 'ur-IN' },
+];
+
+export const INTERVIEW_ROLES = [
+  'Software Engineer',
+  'Full Stack Developer',
+  'Frontend Engineer',
+  'Backend Engineer',
+  'Data Scientist / AI Engineer',
+  'DevOps / Cloud Engineer',
+  'Mobile Developer',
+  'System Architect',
+  'HR & Behavioral',
+];
+
+export const INTERVIEW_DIFFICULTIES = [
+  'Junior',
+  'Intermediate',
+  'Senior',
+  'Lead / Principal',
+];
+
+export const getLanguageName = (code: string) => {
+  const match = INTERVIEW_LANGUAGES.find((l) => l.code === code);
+  return match ? `${match.name} (${match.nativeName})` : code.toUpperCase();
+};
+
 export const InterviewSession: React.FC<InterviewSessionProps> = ({
   onBack,
   selectedLanguage,
@@ -62,6 +100,14 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [autoTts, setAutoTts] = useState(true);
   const [typedInput, setTypedInput] = useState('');
+
+  // Interview Setup & Language State (strictly isolated to this interview conversation)
+  const [selectedRole, setSelectedRole] = useState<string>('Software Engineer');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('Senior');
+  const [interviewLanguage, setInterviewLanguage] = useState<SupportedLanguage>(
+    selectedLanguage && selectedLanguage !== 'auto' ? selectedLanguage : 'en'
+  );
+  const [detectedSpokenLanguage, setDetectedSpokenLanguage] = useState<string | null>(null);
 
   // Hidden File Input Ref
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -91,6 +137,9 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
           setConversation(data);
           setMessages(data.messages || []);
           setAttachedFiles(data.files || []);
+          if (data.language && data.language !== 'auto') {
+            setInterviewLanguage(data.language);
+          }
         }
 
         // Fetch interview session record
@@ -98,6 +147,13 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
         if (sessRes.ok) {
           const sess = await sessRes.json();
           setSessionData(sess);
+          if (sess.role) setSelectedRole(sess.role);
+          if (sess.difficulty) setSelectedDifficulty(sess.difficulty);
+          if (sess.language) {
+            setInterviewLanguage(sess.language as SupportedLanguage);
+          } else if (sess.setup_data?.interview_language) {
+            setInterviewLanguage(sess.setup_data.interview_language as SupportedLanguage);
+          }
           if (sess.status === 'completed') {
             setShowDashboard(true);
           }
@@ -119,8 +175,42 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
       setAttachedFiles([]);
       setSessionData(null);
       setShowDashboard(false);
+      setDetectedSpokenLanguage(null);
     }
   }, [conversationId, loadConversation]);
+
+  // Handle Interview Setup Change (Role, Difficulty, Interview Language)
+  const handleUpdateSetup = async (newRole?: string, newDiff?: string, newLang?: SupportedLanguage) => {
+    const roleVal = newRole ?? selectedRole;
+    const diffVal = newDiff ?? selectedDifficulty;
+    const langVal = newLang ?? interviewLanguage;
+
+    if (newRole !== undefined) setSelectedRole(newRole);
+    if (newDiff !== undefined) setSelectedDifficulty(newDiff);
+    if (newLang !== undefined) {
+      setInterviewLanguage(newLang);
+      // Reset detected language when candidate explicitly changes interview language
+      setDetectedSpokenLanguage(null);
+    }
+
+    if (activeConvId) {
+      try {
+        await fetch('/api/interview/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversation_id: activeConvId,
+            role: roleVal,
+            difficulty: diffVal,
+            interview_language: langVal,
+            candidate_name: sessionData?.candidate_name || '',
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to update interview setup:', err);
+      }
+    }
+  };
 
   // Scroll transcript to bottom when messages update
   useEffect(() => {
@@ -132,14 +222,15 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
     (text: string) => {
       if (!autoTts || !text) return;
       stopSpeaking();
-      const detectedLang = detectLanguageFromText(text, selectedLanguage);
+      const effectiveLang = (detectedSpokenLanguage as SupportedLanguage) || interviewLanguage;
+      const detectedLang = detectLanguageFromText(text, effectiveLang);
       speakText(text, detectedLang, {
         onStart: () => setIsAiSpeaking(true),
         onEnd: () => setIsAiSpeaking(false),
         onError: () => setIsAiSpeaking(false),
       });
     },
-    [autoTts, selectedLanguage]
+    [autoTts, detectedSpokenLanguage, interviewLanguage]
   );
 
   // Handle Resume / JD / PDF Upload
@@ -153,7 +244,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
         formData.append('conversation_id', activeConvId);
       }
       formData.append('feature', 'ai-interview');
-      formData.append('language', selectedLanguage);
+      formData.append('language', interviewLanguage);
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -203,6 +294,13 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
       return;
     }
 
+    // Dynamic candidate spoken language detection (spoken language takes precedence)
+    const detected = detectLanguageFromText(text, interviewLanguage);
+    if (detected && detected !== detectedSpokenLanguage) {
+      setDetectedSpokenLanguage(detected);
+    }
+    const sendLanguage = detected || interviewLanguage;
+
     const tempUserMsg: Message = {
       id: `temp_${Date.now()}`,
       conversation_id: activeConvId || '',
@@ -220,7 +318,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             feature: 'ai-interview',
-            language: selectedLanguage,
+            language: interviewLanguage,
             title: `Interview: ${text.slice(0, 30)}`,
           }),
         });
@@ -229,6 +327,20 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
           currentId = newConv.id;
           setActiveConvId(currentId);
           if (onConversationCreated) onConversationCreated(newConv);
+
+          // Persist setup data into the new session
+          try {
+            await fetch('/api/interview/setup', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                conversation_id: currentId,
+                role: selectedRole,
+                difficulty: selectedDifficulty,
+                interview_language: interviewLanguage,
+              }),
+            });
+          } catch (_) {}
         }
       }
 
@@ -238,7 +350,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
         body: JSON.stringify({
           conversation_id: currentId,
           message: text,
-          language: selectedLanguage,
+          language: sendLanguage,
           feature: 'ai-interview',
         }),
       });
@@ -328,23 +440,24 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
   const metrics = sessionData?.metrics || {};
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden transition-colors">
+    <div className="flex-1 flex flex-col h-full bg-[#f8fafc] dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 overflow-hidden transition-colors">
       {/* Top Header Bar */}
       <ConversationHeader
         title="AI Interview Practice"
         subtitle={
           sessionData?.candidate_name
-            ? `Candidate: ${sessionData.candidate_name} • ${roleName}`
-            : "Professional Mock Interview Platform"
+            ? `Candidate: ${sessionData.candidate_name} • ${selectedRole} (${selectedDifficulty})`
+            : `Senior Mock Interview: ${selectedRole} • ${selectedDifficulty}`
         }
         onBack={onBack}
         onNewConversation={() => {
           stopSpeaking();
           setSessionData(null);
           setShowDashboard(false);
+          setDetectedSpokenLanguage(null);
           if (onNewConversation) onNewConversation();
         }}
-        language={selectedLanguage}
+        language={interviewLanguage}
         activeFeatureId="ai-interview"
         onSelectFeature={onSelectFeature}
       />
@@ -625,36 +738,50 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
         </div>
       ) : (
         /* =====================================================
-           HACKERRANK-STYLE ACTIVE INTERVIEW PLATFORM STAGE
+           SENIOR AI INTERVIEWER COMPLETE WORKSPACE STAGE
            ===================================================== */
-        <div className="flex-1 flex flex-col overflow-y-auto px-3 py-4 md:px-6 md:py-5 max-w-4xl mx-auto w-full space-y-5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 p-3 md:p-5 overflow-y-auto lg:overflow-hidden max-w-7xl mx-auto w-full">
           
-          {/* SECTION 1: AI INTERVIEWER CARD */}
-          <div className="p-5 md:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md relative overflow-hidden transition-all duration-200">
-            <div className="flex items-center justify-between gap-3 mb-3 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+          {/* LEFT PANEL: COMPLETE SENIOR AI INTERVIEWER WORKSPACE */}
+          <div className="lg:w-7/12 flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 md:p-6 shadow-md relative overflow-hidden transition-all duration-200">
+            {/* Header: Avatar, Title, Status & Listen Again */}
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-rose-500/20 shrink-0">
-                  <Bot size={20} />
+                <div className="relative">
+                  <div className={`w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-500 via-pink-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-rose-500/25 shrink-0 ${isAiSpeaking ? 'animate-pulse' : ''}`}>
+                    <Bot size={22} />
+                  </div>
+                  {isAiSpeaking && (
+                    <span className="absolute -inset-1 rounded-2xl bg-rose-500/30 animate-ping pointer-events-none" />
+                  )}
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>AI Senior Interviewer</span>
-                    {isAiSpeaking && (
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Senior AI Interviewer</span>
+                    {isAiSpeaking ? (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 font-mono animate-pulse">
                         Speaking...
                       </span>
+                    ) : isLoading ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-mono animate-pulse">
+                        Thinking...
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-mono">
+                        Ready
+                      </span>
                     )}
                   </h2>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                    Evaluation Domain: {roleName}
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                    Evaluation Domain: {selectedRole} • {selectedDifficulty}
                   </span>
                 </div>
               </div>
 
-              {/* Re-read question aloud button */}
+              {/* Read question aloud button */}
               <button
                 onClick={() => playInterviewerSpeech(activeQuestionText)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white transition-colors cursor-pointer shrink-0"
                 title="Read question aloud"
               >
                 <Volume2 size={13} className="text-indigo-500" />
@@ -662,28 +789,98 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
               </button>
             </div>
 
-            {/* Current Active Interviewer Question Display */}
-            <div className="prose prose-sm dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 text-sm md:text-base leading-relaxed font-sans whitespace-pre-wrap">
-              {activeQuestionText}
+            {/* Clean Interview Setup Area: Role, Difficulty, Interview Language */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 my-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 shrink-0">
+              {/* Role Selector */}
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">
+                  Role
+                </label>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => handleUpdateSetup(e.target.value, undefined, undefined)}
+                  className="w-full text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
+                >
+                  {INTERVIEW_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Difficulty Selector */}
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">
+                  Difficulty
+                </label>
+                <select
+                  value={selectedDifficulty}
+                  onChange={(e) => handleUpdateSetup(undefined, e.target.value, undefined)}
+                  className="w-full text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
+                >
+                  {INTERVIEW_DIFFICULTIES.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Interview Language Selector */}
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">
+                  Interview Language
+                </label>
+                <select
+                  value={interviewLanguage}
+                  onChange={(e) => handleUpdateSetup(undefined, undefined, e.target.value as SupportedLanguage)}
+                  className="w-full text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
+                >
+                  {INTERVIEW_LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.flag} {l.name} ({l.nativeName})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
 
-          {/* SECTION 2: DEDICATED SOUND BOX / VOICE RECORDING AREA */}
-          <div className="w-full">
-            <InterviewSoundBox
-              onSpeechCaptured={(spoken) => handleSendMessage(spoken)}
-              isProcessing={isLoading}
-              isAiSpeaking={isAiSpeaking}
-              selectedLanguage={selectedLanguage}
-              currentQuestion={activeQuestionText}
-              disabled={isLoading}
-            />
-          </div>
+            {/* Candidate Spoken Language Priority Notification Badge */}
+            {detectedSpokenLanguage && detectedSpokenLanguage !== interviewLanguage && (
+              <div className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 mb-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-700/50 shrink-0 animate-fadeIn">
+                <Sparkles size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>
+                  Candidate spoken language: <strong>{getLanguageName(detectedSpokenLanguage)}</strong> — Senior AI Interviewer will respond in {getLanguageName(detectedSpokenLanguage)}.
+                </span>
+              </div>
+            )}
 
-          {/* SECTION 3: QUICK CONTROLS BAR (Screen Share, Upload, End) */}
-          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center flex-wrap gap-2">
-              {/* Hidden file input */}
+            {/* Current Active Question Display (scrolls internally if long) */}
+            <div className="flex-1 min-h-[85px] max-h-48 overflow-y-auto pr-1.5 mb-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/60 scrollbar-thin">
+              <span className="block text-[10px] font-mono uppercase font-bold text-rose-600 dark:text-rose-400 mb-1 tracking-wider">
+                Current Question / Guidance
+              </span>
+              <div className="text-slate-800 dark:text-slate-200 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-sans">
+                {activeQuestionText}
+              </div>
+            </div>
+
+            {/* Embedded SoundBox with Waveform & Large Start/Stop Controls */}
+            <div className="shrink-0">
+              <InterviewSoundBox
+                embedded={true}
+                onSpeechCaptured={(spoken) => handleSendMessage(spoken)}
+                isProcessing={isLoading}
+                isAiSpeaking={isAiSpeaking}
+                selectedLanguage={(detectedSpokenLanguage as any) || interviewLanguage}
+                currentQuestion={activeQuestionText}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Action Buttons Footer: Upload Resume / JD and End Interview */}
+            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2 shrink-0">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -694,60 +891,65 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
                   if (file) handleFileUpload(file);
                 }}
               />
-
-              {/* Upload Resume / JD Button */}
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-sm disabled:opacity-50"
               >
-                <Upload size={14} className="text-blue-500" />
+                <Upload size={13} className="text-blue-500" />
                 <span>Upload Resume / JD</span>
               </button>
-            </div>
 
-            {/* End Interview Quick Button */}
-            {messages.length > 0 && (
-              <button
-                onClick={handleEndInterview}
-                disabled={isEnding}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/30 cursor-pointer active:scale-95 disabled:opacity-50"
-              >
-                <Square size={13} className="fill-white" />
-                <span>End Interview</span>
-              </button>
-            )}
+              {messages.length > 0 && (
+                <button
+                  onClick={handleEndInterview}
+                  disabled={isEnding}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/30 cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  <Square size={12} className="fill-white" />
+                  <span>{isEnding ? 'Evaluating...' : 'End Interview'}</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* SECTION 4: CONVERSATION TRANSCRIPT & HISTORY */}
-          <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-5">
-            <div className="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800/80 pb-2">
+          {/* RIGHT PANEL: LIVE INTERVIEW TRANSCRIPT & CHAT AREA */}
+          <div className="lg:w-5/12 flex flex-col h-full min-h-[420px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-md overflow-hidden transition-all duration-200">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <MessageSquare size={15} className="text-indigo-600 dark:text-indigo-400" />
-                <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Interview Transcript ({messages.length} exchanges)
+                <MessageSquare size={16} className="text-indigo-600 dark:text-indigo-400" />
+                <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                  Live Transcript ({messages.length} exchanges)
                 </h3>
               </div>
-              <span className="text-[11px] text-slate-500 font-mono">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                 Real-time Spoken Log
               </span>
             </div>
 
-            {messages.length === 0 ? (
-              <div className="text-center py-6 text-slate-500 dark:text-slate-400 text-xs">
-                No dialogue yet. Use the large <span className="font-semibold text-emerald-600 dark:text-emerald-400">[ ▶ START RECORDING ]</span> button to speak your first answer.
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
-                {messages.map((msg, idx) => {
+            {/* Scrollable Transcript List */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
+              {messages.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 dark:text-slate-400 text-xs space-y-2">
+                  <div className="w-10 h-10 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                    <Bot size={20} />
+                  </div>
+                  <p>No dialogue recorded yet.</p>
+                  <p className="text-[11px] text-slate-400">
+                    Click the green <span className="font-semibold text-emerald-600 dark:text-emerald-400">[ ▶ START RECORDING ]</span> button to introduce yourself or speak your answer.
+                  </p>
+                </div>
+              ) : (
+                messages.map((msg, idx) => {
                   const isUser = msg.role === 'user';
                   return (
                     <div
                       key={msg.id || idx}
                       className={`p-3 rounded-2xl text-xs md:text-sm leading-relaxed flex items-start gap-2.5 ${
                         isUser
-                          ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-100 border border-indigo-200 dark:border-indigo-500/20 ml-6'
-                          : 'bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 mr-6'
+                          ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-100 border border-indigo-200 dark:border-indigo-500/20 ml-4'
+                          : 'bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 mr-4'
                       }`}
                     >
                       <div
@@ -777,40 +979,40 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
                       </div>
                     </div>
                   );
-                })}
-                <div ref={transcriptBottomRef} />
-              </div>
-            )}
-          </div>
+                })
+              )}
+              <div ref={transcriptBottomRef} />
+            </div>
 
-          {/* SECTION 5: FALLBACK TEXT INPUT (For candidates who prefer typing) */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (typedInput.trim()) {
-                handleSendMessage(typedInput.trim());
-                setTypedInput('');
-              }
-            }}
-            className="flex items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"
-          >
-            <input
-              type="text"
-              value={typedInput}
-              onChange={(e) => setTypedInput(e.target.value)}
-              placeholder="Or type an answer / question here..."
-              disabled={isLoading}
-              className="flex-1 px-3 py-2 text-xs md:text-sm bg-transparent border-none outline-none text-slate-800 dark:text-slate-200 placeholder-slate-400"
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !typedInput.trim()}
-              className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40 transition-colors cursor-pointer shrink-0"
-              title="Send written response"
+            {/* Fallback Text Input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (typedInput.trim()) {
+                  handleSendMessage(typedInput.trim());
+                  setTypedInput('');
+                }
+              }}
+              className="p-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-2 bg-slate-50/50 dark:bg-slate-950/40 shrink-0"
             >
-              <Send size={14} />
-            </button>
-          </form>
+              <input
+                type="text"
+                value={typedInput}
+                onChange={(e) => setTypedInput(e.target.value)}
+                placeholder="Or type an answer / question here..."
+                disabled={isLoading}
+                className="flex-1 px-3 py-2 text-xs md:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-200 placeholder-slate-400"
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !typedInput.trim()}
+                className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40 transition-colors cursor-pointer shrink-0 shadow-sm"
+                title="Send written response"
+              >
+                <Send size={14} />
+              </button>
+            </form>
+          </div>
 
         </div>
       )}

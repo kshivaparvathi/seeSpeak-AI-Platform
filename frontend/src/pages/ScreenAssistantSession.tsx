@@ -62,9 +62,11 @@ export const ScreenAssistantSession: React.FC<ScreenAssistantSessionProps> = ({
   const {
     isSharing,
     videoRef,
+    bindVideoRef,
     startScreenShare,
     stopScreenShare,
     captureScreenFrame,
+    resolution,
     error: screenShareError,
   } = useScreenShare();
 
@@ -233,7 +235,7 @@ export const ScreenAssistantSession: React.FC<ScreenAssistantSessionProps> = ({
   ];
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden transition-colors">
+    <div className="flex-1 flex flex-col h-full bg-[#f8fafc] dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 overflow-hidden transition-colors">
       {/* Top Header */}
       <ConversationHeader
         title="AI Screen Assistant"
@@ -301,210 +303,226 @@ export const ScreenAssistantSession: React.FC<ScreenAssistantSessionProps> = ({
         </div>
       </div>
 
-      {/* Main Workspace Body */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 max-w-5xl mx-auto w-full space-y-5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
-        
-        {/* SECTION 1: PROMINENT LIVE VIDEO STREAM DISPLAY */}
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden transition-all">
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40">
-            <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${isSharing ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
-              <h2 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                {isSharing ? 'Live Screen Stream (AI Context Active)' : 'Screen Preview Display'}
-              </h2>
-            </div>
-            <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-              {isSharing ? 'Frame ready for capture' : 'No screen shared'}
-            </div>
-          </div>
-
-          {/* Video Container or Empty Share Prompt */}
-          {isSharing ? (
-            <div className="p-3 bg-black flex flex-col items-center justify-center min-h-[260px] md:min-h-[380px] max-h-[500px]">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-auto max-h-[460px] object-contain rounded-xl"
-              />
-            </div>
-          ) : (
-            <div className="p-8 md:p-12 flex flex-col items-center justify-center text-center space-y-4 bg-slate-50/30 dark:bg-slate-900/40">
-              <div className="w-16 h-16 rounded-3xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-inner">
-                <Monitor size={32} />
+      {/* Main Workspace Body: Cockpit Layout */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 max-w-7xl mx-auto w-full scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
+          {/* LEFT: Live Screen Video Monitor & Voice Interaction */}
+          <div className="flex-1 w-full space-y-4 min-w-0">
+            {/* SECTION 1: PROMINENT LIVE VIDEO STREAM DISPLAY */}
+            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden transition-all">
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${isSharing ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
+                  <h2 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    {isSharing ? 'Live Screen Stream (AI Copilot Active)' : 'Screen Preview Display'}
+                  </h2>
+                </div>
+                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                  {isSharing ? 'High-FPS frame capture ready' : 'No screen shared'}
+                </div>
               </div>
-              <div className="max-w-md">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                  Share Your Screen for Real-Time AI Assistance
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Open any application, portal, scholarship form, or error console. Click the button below to share your tab or window. The AI will inspect the screen on every question.
-                </p>
-              </div>
-              <button
-                onClick={startScreenShare}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-              >
-                <Monitor size={15} />
-                <span>Select Window or Screen to Share</span>
-              </button>
-            </div>
-          )}
 
-          {screenShareError && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border-t border-rose-200 dark:border-rose-800 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
-              <AlertTriangle size={14} className="shrink-0" />
-              <span>{screenShareError}</span>
-            </div>
-          )}
-        </div>
-
-        {/* SECTION 2: DEDICATED SOUND BOX / VOICE INTERACTION */}
-        <div className="w-full">
-          <InterviewSoundBox
-            onSpeechCaptured={(spoken) => handleSendMessage(spoken)}
-            isProcessing={isLoading}
-            isAiSpeaking={isAiSpeaking}
-            selectedLanguage={selectedLanguage}
-            title="● Screen Voice Assistant Ready"
-            idlePlaceholder="Click [ START ] and speak your question while looking at your screen"
-            startLabel="🎤 START VOICE INQUIRY"
-            stopLabel="■ STOP & ASK AI"
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* SECTION 3: QUICK ACTION GUIDANCE BUTTONS */}
-        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={14} className="text-cyan-600 dark:text-cyan-400" />
-            <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Quick Screen Actions (1-Click Diagnostics)
-            </h3>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {quickActions.map((qa, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSendMessage(qa.prompt)}
-                disabled={isLoading}
-                className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-cyan-50 dark:bg-slate-800/60 dark:hover:bg-cyan-950/30 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-cyan-700 dark:hover:text-cyan-300 text-xs font-medium text-left transition-all cursor-pointer truncate disabled:opacity-50"
-                title={qa.prompt}
-              >
-                {qa.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* SECTION 4: CONVERSATIONAL GUIDANCE TRANSCRIPT */}
-        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-5">
-          <div className="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800/80 pb-2">
-            <div className="flex items-center gap-2">
-              <Eye size={15} className="text-cyan-600 dark:text-cyan-400" />
-              <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Guidance Transcript ({messages.length} exchanges)
-              </h3>
-            </div>
-            <span className="text-[11px] text-slate-500 font-mono">
-              Live Diagnostic Advice
-            </span>
-          </div>
-
-          {messages.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-xs">
-              No questions asked yet. Share your screen, then use the voice button or click a quick action above.
-            </div>
-          ) : (
-            <div className="space-y-3.5 max-h-96 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
-              {messages.map((msg, idx) => {
-                const isUser = msg.role === 'user';
-                return (
-                  <div
-                    key={msg.id || idx}
-                    className={`p-3.5 rounded-2xl text-xs md:text-sm leading-relaxed flex items-start gap-3 ${
-                      isUser
-                        ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-950 dark:text-cyan-100 border border-cyan-200 dark:border-cyan-500/20 ml-6'
-                        : 'bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 mr-6'
-                    }`}
-                  >
-                    <div
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 text-white ${
-                        isUser ? 'bg-cyan-600' : 'bg-slate-700 dark:bg-slate-600'
-                      }`}
-                    >
-                      {isUser ? <User size={14} /> : <Bot size={14} />}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-[11px] uppercase tracking-wider font-mono opacity-80">
-                          {isUser ? 'You' : 'AI Screen Assistant'}
-                        </span>
-                        {!isUser && (
-                          <button
-                            onClick={() => playAssistantSpeech(msg.content)}
-                            className="text-slate-400 hover:text-cyan-500 p-0.5 cursor-pointer"
-                            title="Listen"
-                          >
-                            <Volume2 size={12} />
-                          </button>
-                        )}
-                      </div>
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {streamingText && (
-                <div className="p-3.5 rounded-2xl text-xs md:text-sm leading-relaxed flex items-start gap-3 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 mr-6 animate-pulse">
-                  <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 bg-slate-700 text-white">
-                    <Bot size={14} />
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-bold text-[11px] uppercase tracking-wider font-mono opacity-80 mb-1 block">
-                      AI Screen Assistant
+              {/* Video Container with Guaranteed Stream Binding */}
+              <div className={`p-3 bg-black flex flex-col items-center justify-center min-h-[280px] md:min-h-[400px] max-h-[540px] relative ${!isSharing ? 'hidden' : ''}`}>
+                <video
+                  ref={bindVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-auto max-h-[500px] object-contain rounded-xl shadow-md"
+                />
+                {/* Live Stream Active Status Overlay */}
+                <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-[11px] font-mono text-emerald-400 flex items-center gap-2 shadow-lg">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="font-bold">LIVE SCREEN ACTIVE</span>
+                  {resolution.width > 0 && (
+                    <span className="text-slate-400 text-[10px] pl-1.5 border-l border-slate-700">
+                      {resolution.width}×{resolution.height}
                     </span>
-                    <p className="whitespace-pre-wrap">{streamingText}</p>
+                  )}
+                </div>
+              </div>
+
+              {!isSharing && (
+                <div className="p-8 md:p-12 flex flex-col items-center justify-center text-center space-y-4 bg-slate-50/30 dark:bg-slate-900/40">
+                  <div className="w-16 h-16 rounded-3xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-inner">
+                    <Monitor size={32} />
                   </div>
+                  <div className="max-w-md">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+                      Share Your Screen for Real-Time AI Assistance
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Open any application, portal, scholarship form, or error console. Click the button below to share your tab or window. The AI will inspect the screen on every question.
+                    </p>
+                  </div>
+                  <button
+                    onClick={startScreenShare}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                  >
+                    <Monitor size={15} />
+                    <span>Select Window or Screen to Share</span>
+                  </button>
                 </div>
               )}
-              <div ref={transcriptBottomRef} />
+
+              {screenShareError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border-t border-rose-200 dark:border-rose-800 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                  <AlertTriangle size={14} className="shrink-0" />
+                  <span>{screenShareError}</span>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* SECTION 2: DEDICATED SOUND BOX / VOICE INTERACTION */}
+            <div className="w-full">
+              <InterviewSoundBox
+                onSpeechCaptured={(spoken) => handleSendMessage(spoken)}
+                isProcessing={isLoading}
+                isAiSpeaking={isAiSpeaking}
+                selectedLanguage={selectedLanguage}
+                title="● Screen Voice Assistant Ready"
+                idlePlaceholder="Click [ START ] and speak your question while looking at your screen"
+                startLabel="🎤 START VOICE INQUIRY"
+                stopLabel="■ STOP & ASK AI"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* RIGHT: Quick Screen Actions & Guidance Transcript & Text Input */}
+          <div className="w-full lg:w-[420px] xl:w-[460px] flex flex-col space-y-4 shrink-0">
+            {/* SECTION 3: QUICK ACTION GUIDANCE BUTTONS */}
+            <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles size={14} className="text-cyan-600 dark:text-cyan-400" />
+                <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Quick Screen Actions
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {quickActions.map((qa, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSendMessage(qa.prompt)}
+                    disabled={isLoading}
+                    className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-cyan-50 dark:bg-slate-800/60 dark:hover:bg-cyan-950/30 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-cyan-700 dark:hover:text-cyan-300 text-xs font-medium text-left transition-all cursor-pointer truncate disabled:opacity-50"
+                    title={qa.prompt}
+                  >
+                    {qa.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 4: CONVERSATIONAL GUIDANCE TRANSCRIPT */}
+            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-5 flex-1 flex flex-col min-h-[300px]">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800/80 pb-2">
+                <div className="flex items-center gap-2">
+                  <Eye size={15} className="text-cyan-600 dark:text-cyan-400" />
+                  <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Guidance Transcript ({messages.length})
+                  </h3>
+                </div>
+                <span className="text-[11px] text-slate-500 font-mono">
+                  Live Screen Copilot
+                </span>
+              </div>
+
+              {messages.length === 0 ? (
+                <div className="text-center py-10 text-slate-500 dark:text-slate-400 text-xs">
+                  No questions asked yet. Share your screen, then use the voice button or click a quick action above.
+                </div>
+              ) : (
+                <div className="space-y-3.5 max-h-[340px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
+                  {messages.map((msg, idx) => {
+                    const isUser = msg.role === 'user';
+                    return (
+                      <div
+                        key={msg.id || idx}
+                        className={`p-3 rounded-2xl text-xs md:text-sm leading-relaxed flex items-start gap-2.5 ${
+                          isUser
+                            ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-950 dark:text-cyan-100 border border-cyan-200 dark:border-cyan-500/20 ml-4'
+                            : 'bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 mr-4'
+                        }`}
+                      >
+                        <div
+                          className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-white ${
+                            isUser ? 'bg-cyan-600' : 'bg-slate-700 dark:bg-slate-600'
+                          }`}
+                        >
+                          {isUser ? <User size={13} /> : <Bot size={13} />}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-[10px] uppercase tracking-wider font-mono opacity-80">
+                              {isUser ? 'You' : 'AI Copilot'}
+                            </span>
+                            {!isUser && (
+                              <button
+                                onClick={() => playAssistantSpeech(msg.content)}
+                                className="text-slate-400 hover:text-cyan-500 p-0.5 cursor-pointer"
+                                title="Listen"
+                              >
+                                <Volume2 size={12} />
+                              </button>
+                            )}
+                          </div>
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {streamingText && (
+                    <div className="p-3 rounded-2xl text-xs md:text-sm leading-relaxed flex items-start gap-2.5 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 mr-4 animate-pulse">
+                      <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-slate-700 text-white">
+                        <Bot size={13} />
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-bold text-[10px] uppercase tracking-wider font-mono opacity-80 mb-1 block">
+                          AI Copilot
+                        </span>
+                        <p className="whitespace-pre-wrap">{streamingText}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={transcriptBottomRef} />
+                </div>
+              )}
+
+              {/* SECTION 5: TEXT INPUT FORM */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (typedInput.trim()) {
+                    handleSendMessage(typedInput.trim());
+                    setTypedInput('');
+                  }
+                }}
+                className="mt-3 flex items-center gap-2 p-1.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 shadow-inner"
+              >
+                <input
+                  type="text"
+                  value={typedInput}
+                  onChange={(e) => setTypedInput(e.target.value)}
+                  placeholder="Ask a question about your screen..."
+                  disabled={isLoading}
+                  className="flex-1 px-3 py-1.5 text-xs bg-transparent border-none outline-none text-slate-800 dark:text-slate-200 placeholder-slate-400"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !typedInput.trim()}
+                  className="p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+                  title="Send inquiry"
+                >
+                  <Send size={13} />
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
-
-        {/* SECTION 5: FALLBACK TEXT INPUT */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (typedInput.trim()) {
-              handleSendMessage(typedInput.trim());
-              setTypedInput('');
-            }
-          }}
-          className="flex items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"
-        >
-          <input
-            type="text"
-            value={typedInput}
-            onChange={(e) => setTypedInput(e.target.value)}
-            placeholder="Ask a question about the active screen (e.g. 'Where do I enter my IFSC code?')..."
-            disabled={isLoading}
-            className="flex-1 px-3 py-2 text-xs md:text-sm bg-transparent border-none outline-none text-slate-800 dark:text-slate-200 placeholder-slate-400"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !typedInput.trim()}
-            className="p-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40 transition-colors cursor-pointer shrink-0"
-            title="Send inquiry"
-          >
-            <Send size={14} />
-          </button>
-        </form>
-
       </div>
     </div>
   );

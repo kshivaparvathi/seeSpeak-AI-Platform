@@ -30,6 +30,9 @@ FEATURE_MAPPING = {
     "screen": "ai-screen-assistant",
     "ai-screen-assistant": "ai-screen-assistant",
     "screen-assistant": "ai-screen-assistant",
+    "presentation": "ai-presentation-maker",
+    "ai-presentation-maker": "ai-presentation-maker",
+    "presentation-maker": "ai-presentation-maker",
 }
 
 def normalize_feature_id(feature: Optional[str]) -> str:
@@ -133,6 +136,24 @@ class ConversationRepository:
                     updated_at TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_resume_conv ON resume_projects(conversation_id);
+
+                CREATE TABLE IF NOT EXISTS presentation_projects (
+                    id TEXT PRIMARY KEY,
+                    conversation_id TEXT UNIQUE,
+                    title TEXT DEFAULT 'Untitled Presentation',
+                    theme_id TEXT DEFAULT 'modern-professional',
+                    topic TEXT DEFAULT '',
+                    slide_count INTEGER DEFAULT 10,
+                    audience TEXT DEFAULT 'College',
+                    level TEXT DEFAULT 'Moderate',
+                    tone TEXT DEFAULT 'Professional',
+                    language TEXT DEFAULT 'en',
+                    slides_json TEXT DEFAULT '[]',
+                    outline_json TEXT DEFAULT '[]',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_presentation_conv ON presentation_projects(conversation_id);
             """)
 
             # Schema migration check: ensure conversation_files has feature_id column
@@ -150,6 +171,13 @@ class ConversationRepository:
                 cursor.execute("ALTER TABLE conversations ADD COLUMN is_favorite INTEGER DEFAULT 0")
                 logger.info("Migrated conversations: added is_favorite column")
 
+            # Schema migration check: ensure interview_sessions has language column
+            cursor.execute("PRAGMA table_info(interview_sessions)")
+            intv_columns = [row["name"] for row in cursor.fetchall()]
+            if "language" not in intv_columns:
+                cursor.execute("ALTER TABLE interview_sessions ADD COLUMN language TEXT DEFAULT 'en'")
+                logger.info("Migrated interview_sessions: added language column")
+
         logger.info(f"Initialized SQLite database at {self.db_path}")
 
     def create_conversation(
@@ -157,7 +185,8 @@ class ConversationRepository:
         feature: str = "document-analysis",
         mode: str = "general",
         language: str = "en",
-        title: Optional[str] = None
+        title: Optional[str] = None,
+        user_id: Optional[str] = None
     ) -> Dict[str, Any]:
         conv_id = f"conv_{uuid.uuid4().hex[:12]}"
         now = datetime.now(timezone.utc).isoformat()
@@ -167,10 +196,10 @@ class ConversationRepository:
         with self._get_connection() as conn:
             conn.execute(
                 """
-                INSERT INTO conversations (id, title, feature, mode, language, is_favorite, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+                INSERT INTO conversations (id, title, feature, mode, language, is_favorite, user_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
                 """,
-                (conv_id, initial_title, canonical_feature, mode, language, now, now)
+                (conv_id, initial_title, canonical_feature, mode, language, user_id or "", now, now)
             )
 
         return {
@@ -181,6 +210,7 @@ class ConversationRepository:
             "mode": mode,
             "language": language,
             "is_favorite": False,
+            "user_id": user_id or "",
             "created_at": now,
             "updated_at": now,
             "messages": [],
@@ -219,11 +249,13 @@ class ConversationRepository:
     def list_conversations(
         self,
         feature: Optional[str] = None,
-        query: Optional[str] = None
+        query: Optional[str] = None,
+        user_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Lists conversations. When feature is provided, strictly limits results
         to conversations belonging to that specific feature.
+        When user_id is provided, isolates conversations to that specific user.
         """
         canonical_feature = normalize_feature_id(feature) if feature else None
 
@@ -231,6 +263,10 @@ class ConversationRepository:
             cursor = conn.cursor()
             conditions = []
             params = []
+
+            if user_id:
+                conditions.append("c.user_id = ?")
+                params.append(user_id)
 
             if canonical_feature and canonical_feature != "all":
                 # Find matching feature or legacy alias
@@ -370,6 +406,15 @@ class ConversationRepository:
             "created_at": now
         }
 
+    def get_files(self, conv_id: str) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM conversation_files WHERE conversation_id = ? ORDER BY created_at ASC",
+                (conv_id,)
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
     def generate_smart_title(
         self,
         conv_id: str,
@@ -393,6 +438,16 @@ class ConversationRepository:
         self.update_title(conv_id, title)
         return title
 
+    def update_conversation_language(self, conv_id: str, language: str) -> bool:
+        now = datetime.now(timezone.utc).isoformat()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE conversations SET language = ?, updated_at = ? WHERE id = ?",
+                (language, now, conv_id)
+            )
+            return cursor.rowcount > 0
+
     def create_or_get_interview_session(
         self,
         conversation_id: str,
@@ -403,7 +458,8 @@ class ConversationRepository:
         role: str = "",
         interview_type: str = "Technical",
         topics: str = "",
-        difficulty: str = "Intermediate"
+        difficulty: str = "Intermediate",
+        language: str = "en"
     ) -> Dict[str, Any]:
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -429,22 +485,23 @@ class ConversationRepository:
                 "role": role,
                 "interview_type": interview_type,
                 "topics": topics,
-                "difficulty": difficulty
+                "difficulty": difficulty,
+                "interview_language": language
             }
             conn.execute(
                 """
                 INSERT INTO interview_sessions (
                     id, conversation_id, candidate_name, target, company_exam,
-                    branch, role, interview_type, topics, difficulty, status,
+                    branch, role, interview_type, topics, difficulty, language, status,
                     start_time, end_time, current_question_index, total_questions,
                     setup_data_json, qa_records_json, metrics_json, strengths_json,
                     improvements_json, concepts_to_revise_json, next_step_recommendation,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'setup', ?, NULL, 0, 0, ?, '[]', '{}', '[]', '[]', '[]', '', ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'setup', ?, NULL, 0, 0, ?, '[]', '{}', '[]', '[]', '[]', '', ?, ?)
                 """,
                 (
                     session_id, conversation_id, candidate_name, target, company_exam,
-                    branch, role, interview_type, topics, difficulty, now,
+                    branch, role, interview_type, topics, difficulty, language, now,
                     json.dumps(setup_dict), now, now
                 )
             )
@@ -509,7 +566,7 @@ class ConversationRepository:
                 params.append(json.dumps(v))
             elif k in [
                 "candidate_name", "target", "company_exam", "branch", "role",
-                "interview_type", "topics", "difficulty", "status", "start_time",
+                "interview_type", "topics", "difficulty", "language", "status", "start_time",
                 "end_time", "current_question_index", "total_questions", "next_step_recommendation"
             ]:
                 fields.append(f"{k} = ?")
@@ -713,6 +770,126 @@ class ConversationRepository:
                 item = dict(r)
                 item["resume_data"] = json.loads(item.get("resume_data_json") or "{}")
                 item["ats_analysis"] = json.loads(item.get("ats_analysis_json") or "{}")
+                results.append(item)
+            return results
+
+    # ========================================================
+    # PRESENTATION MAKER METHODS
+    # ========================================================
+    def create_or_get_presentation_project(
+        self,
+        conversation_id: str,
+        title: str = "Untitled Presentation",
+        theme_id: str = "modern-professional",
+        topic: str = "",
+        slide_count: int = 10,
+        audience: str = "College",
+        level: str = "Moderate",
+        tone: str = "Professional",
+        language: str = "en",
+        slides: Optional[List[Dict[str, Any]]] = None,
+        outline: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        existing = self.get_presentation_project(conversation_id)
+        if existing:
+            return existing
+
+        now = datetime.now(timezone.utc).isoformat()
+        project_id = f"pres_{uuid.uuid4().hex[:12]}"
+        default_slides = slides or []
+        default_outline = outline or []
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO presentation_projects (
+                    id, conversation_id, title, theme_id, topic, slide_count,
+                    audience, level, tone, language, slides_json,
+                    outline_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                project_id,
+                conversation_id,
+                title,
+                theme_id,
+                topic,
+                slide_count,
+                audience,
+                level,
+                tone,
+                language,
+                json.dumps(default_slides),
+                json.dumps(default_outline),
+                now,
+                now
+            ))
+            conn.commit()
+
+        return self.get_presentation_project(conversation_id)
+
+    def get_presentation_project(self, conv_or_proj_id: str) -> Optional[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM presentation_projects WHERE id = ? OR conversation_id = ?",
+                (conv_or_proj_id, conv_or_proj_id)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            res = dict(row)
+            res["slides"] = json.loads(res.get("slides_json") or "[]")
+            res["outline"] = json.loads(res.get("outline_json") or "[]")
+            return res
+
+    def update_presentation_project(self, conv_or_proj_id: str, updates: Dict[str, Any]) -> bool:
+        project = self.get_presentation_project(conv_or_proj_id)
+        if not project:
+            return False
+
+        now = datetime.now(timezone.utc).isoformat()
+        fields = []
+        values = []
+
+        simple_fields = ["title", "theme_id", "topic", "slide_count", "audience", "level", "tone", "language"]
+        for f in simple_fields:
+            if f in updates:
+                fields.append(f"{f} = ?")
+                values.append(updates[f])
+
+        if "slides" in updates:
+            fields.append("slides_json = ?")
+            values.append(json.dumps(updates["slides"]))
+
+        if "outline" in updates:
+            fields.append("outline_json = ?")
+            values.append(json.dumps(updates["outline"]))
+
+        fields.append("updated_at = ?")
+        values.append(now)
+
+        values.append(project["id"])
+
+        query = f"UPDATE presentation_projects SET {', '.join(fields)} WHERE id = ?"
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, values)
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def list_presentation_projects(self, limit: int = 30) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM presentation_projects ORDER BY updated_at DESC LIMIT ?",
+                (limit,)
+            )
+            rows = cursor.fetchall()
+            results = []
+            for r in rows:
+                item = dict(r)
+                item["slides"] = json.loads(item.get("slides_json") or "[]")
+                item["outline"] = json.loads(item.get("outline_json") or "[]")
                 results.append(item)
             return results
 

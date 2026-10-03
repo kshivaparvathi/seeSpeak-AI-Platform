@@ -16,10 +16,9 @@ from backend.utils.logging import logger
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 GEMINI_CANDIDATE_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-flash-lite-latest",
-    "gemini-flash-latest"
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-3.7-flash",
 ]
 
 LANGUAGE_PROMPT_INSTRUCTIONS = {
@@ -34,6 +33,20 @@ LANGUAGE_PROMPT_INSTRUCTIONS = {
     "pa": "Respond naturally in fluent Punjabi (ਪੰਜਾਬੀ). Use authentic Gurmukhi script. Retain technical terms in English while explaining in Punjabi.",
     "ur": "Respond naturally in fluent Urdu (اردو). Use authentic Urdu script. Keep code and technical terminology in English while explaining in Urdu.",
     "en": "Respond in clear, natural, professional English."
+}
+
+LANGUAGE_PROMPT_NAMES = {
+    "en": "English",
+    "te": "Telugu",
+    "hi": "Hindi",
+    "ta": "Tamil",
+    "kn": "Kannada",
+    "ml": "Malayalam",
+    "mr": "Marathi",
+    "bn": "Bengali",
+    "gu": "Gujarati",
+    "pa": "Punjabi",
+    "ur": "Urdu",
 }
 
 def detect_message_language(text: str, fallback_ui_lang: Optional[str] = "en") -> str:
@@ -94,6 +107,29 @@ def detect_message_language(text: str, fallback_ui_lang: Optional[str] = "en") -
         if any(w in text for w in ["आहे", "नाही", "कसे", "काय", "करावे", "माहिती", "द्या", "सांगा", "स्पष्टीकरण"]) or "ळ" in text:
             return "mr"
         return "hi"
+
+    # 2b. Transliterated / Phonetic Indian language detection (e.g. spoken interview transliterations)
+    # Telugu phonetic indicators
+    if re.search(r'\b(naaku|ardham|ardham kaaledu|konchem|cheyyandi|cheyandi|nenu|chesanu|kuda|meeru|cheppandi|telugulo|entante|chala|undi|unnayi|ledu|kaaledu|lekapothe|cheyali|evaru|enti|enduku|ela|ippudu|appudu|manaki)\b', t_lower):
+        return "te"
+    # Hindi phonetic indicators
+    if re.search(r'\b(mujhe|samajh|samajh nahi aaya|nahi aaya|kripya|batao|batayein|maine|kiya|tha|hai|karna|chahiye|kaise|kya|kyun|aap|hum|karo|bataiye|theek|kuch)\b', t_lower):
+        return "hi"
+    # Tamil phonetic indicators
+    if re.search(r'\b(puriyala|enakku|konjam|sollunga|panninen|irukku|theriyum|illai|enna|epdi|solla|eppadi|ungalukku|romba)\b', t_lower):
+        return "ta"
+    # Kannada phonetic indicators
+    if re.search(r'\b(gothilla|nanage|swalpa|heli|madidini|beku|hege|yenu|illa|madi)\b', t_lower):
+        return "kn"
+    # Malayalam phonetic indicators
+    if re.search(r'\b(manasilayilla|enikku|parayumo|cheythu|undu|ariyilla|engane)\b', t_lower):
+        return "ml"
+    # Marathi phonetic indicators
+    if re.search(r'\b(aahe|nahi|kasa|kay|karava|mahiti|dya|sanga)\b', t_lower):
+        return "mr"
+    # Bengali phonetic indicators
+    if re.search(r'\b(bujhte|parini|amake|bolun|korechi|hobe|aami)\b', t_lower):
+        return "bn"
 
     # 3. Standard Latin text without explicit override -> English!
     if re.search(r'[a-zA-Z]', text):
@@ -244,6 +280,21 @@ async def send_chat_message(req: ChatMessageRequest):
         "   - NEVER claim you have cursor control or can click for them; instead, act as an articulate, encouraging human mentor guiding their hands."
     )
 
+    if conv_feature == "ai-interview":
+        pref_lang_code = req.language or conv.get("language", "en")
+        pref_lang_name = LANGUAGE_PROMPT_NAMES.get(pref_lang_code, pref_lang_code.title() if pref_lang_code else "English")
+        system_instruction += (
+            f"\n\n### CANDIDATE SPOKEN LANGUAGE ADAPTATION & PRIORITY:\n"
+            f"The candidate selected {pref_lang_name} as their preferred interview language.\n"
+            f"However, the candidate's actual spoken language has higher priority.\n"
+            f"Detect the language being used by the candidate during each response.\n"
+            f"Respond naturally in the candidate's current spoken language.\n"
+            f"If the candidate switches languages, follow the new language.\n"
+            f"If the candidate uses mixed languages, understand the mixed-language speech and respond naturally according to the dominant/current language.\n"
+            f"Only use the selected interview language when the spoken language cannot be confidently determined.\n"
+            f"Do not unnecessarily switch languages."
+        )
+
     # Build contents strictly with files from THIS conversation only
     contents: List[Any] = []
 
@@ -254,27 +305,32 @@ async def send_chat_message(req: ChatMessageRequest):
         if part:
             contents.append(part)
 
-    # 2. Attach active screen frame if provided
-    if req.screen_image:
-        try:
-            img_data = req.screen_image
-            if "," in img_data:
-                img_data = img_data.split(",", 1)[1]
-            img_bytes = base64.b64decode(img_data)
-            contents.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
-            logger.info(f"Attached screen context frame ({len(img_bytes)} bytes) to Gemini contents")
-        except Exception as e:
-            logger.error(f"Failed to decode screen_image: {e}")
-
-    # 3. Add previous conversation history strictly for this conversation
+    # 2. Add previous conversation history strictly for this conversation
     past_messages = conv.get("messages", [])
     recent_history = past_messages[-10:-1] if len(past_messages) > 1 else []
     for msg in recent_history:
         role = "user" if msg["role"] == "user" else "model"
         contents.append(types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])]))
 
-    # 4. Add current user prompt
-    contents.append(types.Part.from_text(text=req.message))
+    # 3. Add current user prompt with live screen frame attached directly to this turn
+    current_user_parts: List[Any] = []
+    if req.screen_image:
+        try:
+            img_data = req.screen_image
+            if "," in img_data:
+                img_data = img_data.split(",", 1)[1]
+            img_bytes = base64.b64decode(img_data)
+            current_user_parts.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
+            logger.info(f"Attached live screen context frame ({len(img_bytes)} bytes) to current user message")
+        except Exception as e:
+            logger.error(f"Failed to decode screen_image: {e}")
+
+    current_user_parts.append(types.Part.from_text(text=req.message))
+
+    if recent_history:
+        contents.append(types.Content(role="user", parts=current_user_parts))
+    else:
+        contents.extend(current_user_parts)
 
     # Call Gemini with candidate models fallback
     full_response_text = ""
@@ -386,25 +442,31 @@ async def stream_chat_message(req: ChatMessageRequest):
         if part:
             contents.append(part)
 
-    # Attach active screen frame if provided
-    if req.screen_image:
-        try:
-            img_data = req.screen_image
-            if "," in img_data:
-                img_data = img_data.split(",", 1)[1]
-            img_bytes = base64.b64decode(img_data)
-            contents.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
-            logger.info(f"Attached screen context frame ({len(img_bytes)} bytes) to Gemini streaming contents")
-        except Exception as e:
-            logger.error(f"Failed to decode screen_image: {e}")
-
     past_messages = conv.get("messages", [])
     recent_history = past_messages[-10:-1] if len(past_messages) > 1 else []
     for msg in recent_history:
         role = "user" if msg["role"] == "user" else "model"
         contents.append(types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])]))
 
-    contents.append(types.Part.from_text(text=req.message))
+    # Add current user prompt with live screen frame attached directly to this turn
+    current_user_parts: List[Any] = []
+    if req.screen_image:
+        try:
+            img_data = req.screen_image
+            if "," in img_data:
+                img_data = img_data.split(",", 1)[1]
+            img_bytes = base64.b64decode(img_data)
+            current_user_parts.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
+            logger.info(f"Attached live screen context frame ({len(img_bytes)} bytes) to Gemini streaming turn")
+        except Exception as e:
+            logger.error(f"Failed to decode screen_image: {e}")
+
+    current_user_parts.append(types.Part.from_text(text=req.message))
+
+    if recent_history:
+        contents.append(types.Content(role="user", parts=current_user_parts))
+    else:
+        contents.extend(current_user_parts)
 
     async def event_generator():
         accumulated_text = []

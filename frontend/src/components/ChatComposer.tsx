@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Paperclip, Mic, MicOff, Globe, Radio, Volume2, VolumeX, Check, X, AlertCircle } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff, Globe, Volume2, VolumeX, Check, X, AlertCircle } from 'lucide-react';
 import { SupportedLanguage } from '../types';
 import { SUPPORTED_LANGUAGES, getLanguageInfo } from '../config/languages';
 import { QuickActionsMenu } from './QuickActionsMenu';
@@ -445,7 +445,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             )}
           </div>
 
-          {/* Right Action Controls: Microphone + Live Voice + Send */}
+          {/* Right Action Controls: Microphone + Send */}
           <div className="flex items-center gap-2">
             {/* Real Microphone Recognition Button */}
             <button
@@ -465,19 +465,6 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               {isListening ? <MicOff size={18} /> : <Mic size={18} />}
               {isListening && <span className="text-xs font-semibold pr-1">Listening</span>}
             </button>
-
-            {/* Gemini Live Real-time Session Modal Trigger */}
-            {onOpenVoice && (
-              <button
-                type="button"
-                onClick={onOpenVoice}
-                title="Start Real-Time Streaming Audio Conversation"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500/10 to-indigo-500/10 dark:from-rose-500/20 dark:to-indigo-500/20 hover:from-rose-500/20 hover:to-indigo-500/20 dark:hover:from-rose-500/30 dark:hover:to-indigo-500/30 border border-rose-300 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
-              >
-                <Radio size={14} className="text-rose-500 dark:text-rose-400 animate-pulse" />
-                <span className="text-xs font-semibold hidden sm:inline">Live Voice</span>
-              </button>
-            )}
 
             {/* Send Message Button */}
             <button

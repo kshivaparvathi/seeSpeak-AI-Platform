@@ -30,6 +30,8 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 test_quick_action_doc.txt
 user_prompt*.txt
+backend/dev_mailbox.json
+scratch/
 
 # Logs
 *.log
@@ -41,3 +43,5 @@ yarn-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+*.bak
+*.tmp

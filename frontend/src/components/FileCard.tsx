@@ -37,17 +37,17 @@ export const FileCard: React.FC<FileCardProps> = ({ file, onRemove }) => {
   };
 
   return (
-    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-sm group">
+    <div className="flex items-center justify-between p-3 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all shadow-sm group">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/60 shrink-0">
+        <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 shrink-0">
           {getFileIcon()}
         </div>
         <div className="min-w-0">
-          <div className="text-xs md:text-sm font-medium text-slate-200 truncate group-hover:text-indigo-300 transition-colors">
+          <div className="text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
             {file.filename}
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-            <span className="flex items-center gap-1 text-emerald-400 font-medium">
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
               <CheckCircle2 size={11} /> Ready for questions
             </span>
             {file.size_bytes > 0 && (
@@ -63,7 +63,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, onRemove }) => {
       {onRemove && (
         <button
           onClick={() => onRemove(file.id)}
-          className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors ml-2"
+          className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors ml-2 cursor-pointer"
           title="Remove file"
         >
           <X size={15} />

@@ -15,9 +15,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('seespeak_theme');
       if (saved === 'light' || saved === 'dark') return saved;
-      return 'dark'; // Default to modern dark aesthetic
+      return 'light'; // Default to modern light aesthetic matching Reference Image 2
     } catch (_) {
-      return 'dark';
+      return 'light';
     }
   });
 

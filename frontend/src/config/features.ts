@@ -247,6 +247,38 @@ export const FEATURES: FeatureConfig[] = [
       { text: 'Explain this portal dashboard in simple terms', langHint: '💡 Explain' },
     ],
   },
+  {
+    id: 'ai-presentation-maker',
+    title: 'AI Presentation Maker',
+    tagline: 'Create • Design • Present',
+    description: 'Create professional presentations from your requirements, documents, PDFs, notes, or voice input.',
+    route: '/ai-presentation-maker',
+    aliases: ['presentation', 'feature/presentation', 'presentation-maker', 'ppt'],
+    iconName: 'Presentation',
+    colorScheme: {
+      bg: 'from-violet-600/15 via-purple-900/10 to-transparent',
+      border: 'border-violet-500/20 hover:border-violet-400/50',
+      text: 'text-violet-400',
+      glow: 'shadow-violet-500/10',
+      accent: '#8b5cf6',
+    },
+    supportedMimeTypes: [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'text/plain',
+      'image/png',
+      'image/jpeg'
+    ],
+    samplePrompts: [
+      { text: 'Create a 10-slide presentation about Cloud Computing for a college seminar', langHint: '📊 PPT' },
+      { text: 'Make an 8-slide presentation explaining Operating System Memory Management', langHint: '🎓 Seminar' },
+      { text: 'Make a 12-slide presentation about Artificial Intelligence for beginners', langHint: '🤖 AI' },
+      { text: 'Generate a 10-slide professional presentation from this uploaded PDF', langHint: '📄 Doc to PPT' },
+    ],
+  },
 ];
 
 export function getFeatureConfig(idOrRoute: string): FeatureConfig {

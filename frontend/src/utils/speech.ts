@@ -80,6 +80,29 @@ export function detectLanguageFromText(text: string, fallbackLang: string = 'en'
     return 'hi'; // Hindi
   }
 
+  // Phonetic Indian language transliteration checks (e.g. conversational spoken responses in Roman script)
+  if (/\b(naaku|ardham|ardham kaaledu|konchem|cheyyandi|cheyandi|nenu|chesanu|kuda|meeru|cheppandi|telugulo|entante|chala|undi|unnayi|ledu|kaaledu|lekapothe|cheyali|evaru|enti|enduku|ela|ippudu|appudu|manaki)\b/i.test(tLower)) {
+    return 'te';
+  }
+  if (/\b(mujhe|samajh|samajh nahi aaya|nahi aaya|kripya|batao|batayein|maine|kiya|tha|hai|karna|chahiye|kaise|kya|kyun|aap|hum|karo|bataiye|theek|kuch)\b/i.test(tLower)) {
+    return 'hi';
+  }
+  if (/\b(puriyala|enakku|konjam|sollunga|panninen|irukku|theriyum|illai|enna|epdi|solla|eppadi|ungalukku|romba)\b/i.test(tLower)) {
+    return 'ta';
+  }
+  if (/\b(gothilla|nanage|swalpa|heli|madidini|beku|hege|yenu|illa|madi)\b/i.test(tLower)) {
+    return 'kn';
+  }
+  if (/\b(manasilayilla|enikku|parayumo|cheythu|undu|ariyilla|engane)\b/i.test(tLower)) {
+    return 'ml';
+  }
+  if (/\b(aahe|nahi|kasa|kay|karava|mahiti|dya|sanga)\b/i.test(tLower)) {
+    return 'mr';
+  }
+  if (/\b(bujhte|parini|amake|bolun|korechi|hobe|aami)\b/i.test(tLower)) {
+    return 'bn';
+  }
+
   // If text contains Latin alphabet and no explicit request, it is English
   if (/[a-zA-Z]/.test(text)) return 'en';
 

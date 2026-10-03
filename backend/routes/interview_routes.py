@@ -19,6 +19,7 @@ class InterviewSetupRequest(BaseModel):
     interview_type: Optional[str] = "Technical"
     topics: Optional[str] = ""
     difficulty: Optional[str] = "Intermediate"
+    interview_language: Optional[str] = "en"
 
 class EndInterviewRequest(BaseModel):
     conversation_id: str
@@ -42,8 +43,13 @@ def update_interview_setup(req: InterviewSetupRequest):
         role=req.role or "",
         interview_type=req.interview_type or "Technical",
         topics=req.topics or "",
-        difficulty=req.difficulty or "Intermediate"
+        difficulty=req.difficulty or "Intermediate",
+        language=req.interview_language or "en"
     )
+
+    setup_data = session.get("setup_data") or {}
+    if req.interview_language:
+        setup_data["interview_language"] = req.interview_language
 
     updates = {
         "candidate_name": req.candidate_name or session.get("candidate_name", ""),
@@ -54,6 +60,8 @@ def update_interview_setup(req: InterviewSetupRequest):
         "interview_type": req.interview_type or session.get("interview_type", "Technical"),
         "topics": req.topics or session.get("topics", ""),
         "difficulty": req.difficulty or session.get("difficulty", "Intermediate"),
+        "language": req.interview_language or session.get("language", "en"),
+        "setup_data": setup_data
     }
     
     # Check if ready to begin
@@ -61,6 +69,8 @@ def update_interview_setup(req: InterviewSetupRequest):
         updates["status"] = "in_progress"
 
     conversation_repository.update_interview_session(req.conversation_id, updates)
+    if req.interview_language:
+        conversation_repository.update_conversation_language(req.conversation_id, req.interview_language)
     return conversation_repository.get_interview_session(req.conversation_id)
 
 @router.post("/end")

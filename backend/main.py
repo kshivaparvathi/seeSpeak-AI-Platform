@@ -12,9 +12,11 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.routes.history_routes import router as history_router
 from backend.routes.upload_routes import router as upload_router, UPLOAD_DIR
+from backend.routes.auth_routes import router as auth_router
 from backend.routes.chat_routes import router as chat_router
 from backend.routes.interview_routes import router as interview_router
 from backend.routes.resume_routes import router as resume_router
+from backend.routes.presentation_routes import router as presentation_router
 from backend.routes.websocket_routes import router as websocket_router
 from backend.utils.logging import logger
 
@@ -24,10 +26,18 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS Middleware
+# CORS Middleware (configured for credentialed HTTP-only cookie support)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,11 +48,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Include Routers
+app.include_router(auth_router)
 app.include_router(history_router)
 app.include_router(upload_router)
 app.include_router(chat_router)
 app.include_router(interview_router)
 app.include_router(resume_router)
+app.include_router(presentation_router)
 app.include_router(websocket_router)
 
 @app.get("/health")

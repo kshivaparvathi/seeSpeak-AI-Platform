@@ -2,6 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ConversationHeader } from '../components/ConversationHeader';
 import { MultimodalChat } from '../components/MultimodalChat';
 import { VoiceModal } from '../components/VoiceModal';
+import { DocumentWorkspaceView } from '../components/workspaces/DocumentWorkspaceView';
+import { VisionWorkspaceView } from '../components/workspaces/VisionWorkspaceView';
+import { MediaWorkspaceView } from '../components/workspaces/MediaWorkspaceView';
+import { DataStudyWorkspaceView } from '../components/workspaces/DataStudyWorkspaceView';
 import { getFeatureConfig } from '../config/features';
 import { Conversation, Message, ConversationFile, SupportedLanguage } from '../types';
 
@@ -251,23 +255,100 @@ export const FeatureWorkspace: React.FC<FeatureWorkspaceProps> = ({
         onSelectFeature={onSelectFeature}
       />
 
-      <MultimodalChat
-        conversation={conversation}
-        messages={messages}
-        attachedFiles={attachedFiles}
-        onSendMessage={handleSendMessage}
-        onFileUpload={handleFileUpload}
-        selectedLanguage={selectedLanguage}
-        onSelectLanguage={onSelectLanguage}
-        isLoading={isLoading}
-        streamingText={streamingText}
-        error={error}
-        featureId={feature.id}
-        featureTitle={feature.title}
-        featureDescription={feature.description}
-        samplePrompts={feature.samplePrompts}
-        onOpenVoice={() => setIsVoiceOpen(true)}
-      />
+      {(() => {
+        const normId = feature.id.toLowerCase().replace('feature/', '');
+        if (normId === 'document-analysis') {
+          return (
+            <DocumentWorkspaceView
+              conversation={conversation}
+              messages={messages}
+              attachedFiles={attachedFiles}
+              onSendMessage={handleSendMessage}
+              onFileUpload={handleFileUpload}
+              selectedLanguage={selectedLanguage}
+              onSelectLanguage={onSelectLanguage}
+              isLoading={isLoading}
+              streamingText={streamingText}
+              error={error}
+              onOpenVoice={() => setIsVoiceOpen(true)}
+            />
+          );
+        }
+
+        if (normId === 'visual-intelligence') {
+          return (
+            <VisionWorkspaceView
+              conversation={conversation}
+              messages={messages}
+              attachedFiles={attachedFiles}
+              onSendMessage={handleSendMessage}
+              onFileUpload={handleFileUpload}
+              selectedLanguage={selectedLanguage}
+              onSelectLanguage={onSelectLanguage}
+              isLoading={isLoading}
+              streamingText={streamingText}
+              error={error}
+              onOpenVoice={() => setIsVoiceOpen(true)}
+            />
+          );
+        }
+
+        if (normId === 'video-audio-review') {
+          return (
+            <MediaWorkspaceView
+              conversation={conversation}
+              messages={messages}
+              attachedFiles={attachedFiles}
+              onSendMessage={handleSendMessage}
+              onFileUpload={handleFileUpload}
+              selectedLanguage={selectedLanguage}
+              onSelectLanguage={onSelectLanguage}
+              isLoading={isLoading}
+              streamingText={streamingText}
+              error={error}
+              onOpenVoice={() => setIsVoiceOpen(true)}
+            />
+          );
+        }
+
+        if (normId === 'data-study') {
+          return (
+            <DataStudyWorkspaceView
+              conversation={conversation}
+              messages={messages}
+              attachedFiles={attachedFiles}
+              onSendMessage={handleSendMessage}
+              onFileUpload={handleFileUpload}
+              selectedLanguage={selectedLanguage}
+              onSelectLanguage={onSelectLanguage}
+              isLoading={isLoading}
+              streamingText={streamingText}
+              error={error}
+              onOpenVoice={() => setIsVoiceOpen(true)}
+            />
+          );
+        }
+
+        return (
+          <MultimodalChat
+            conversation={conversation}
+            messages={messages}
+            attachedFiles={attachedFiles}
+            onSendMessage={handleSendMessage}
+            onFileUpload={handleFileUpload}
+            selectedLanguage={selectedLanguage}
+            onSelectLanguage={onSelectLanguage}
+            isLoading={isLoading}
+            streamingText={streamingText}
+            error={error}
+            featureId={feature.id}
+            featureTitle={feature.title}
+            featureDescription={feature.description}
+            samplePrompts={feature.samplePrompts}
+            onOpenVoice={() => setIsVoiceOpen(true)}
+          />
+        );
+      })()}
 
       <VoiceModal
         isOpen={isVoiceOpen}

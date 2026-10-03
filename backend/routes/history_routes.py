@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from backend.repositories.conversation_repository import conversation_repository
+from backend.middleware.auth_middleware import get_current_user_optional
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
@@ -18,18 +19,25 @@ class UpdateTitleRequest(BaseModel):
 def list_conversations(
     q: Optional[str] = Query(None, description="Search term for title or content"),
     feature: Optional[str] = Query(None, description="Filter by feature ID"),
-    feature_id: Optional[str] = Query(None, description="Filter by feature ID alias")
+    feature_id: Optional[str] = Query(None, description="Filter by feature ID alias"),
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
 ):
     selected_feature = feature or feature_id
-    return conversation_repository.list_conversations(feature=selected_feature, query=q)
+    user_id = current_user["id"] if current_user else None
+    return conversation_repository.list_conversations(feature=selected_feature, query=q, user_id=user_id)
 
 @router.post("")
-def create_conversation(req: CreateConversationRequest):
+def create_conversation(
+    req: CreateConversationRequest,
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
+    user_id = current_user["id"] if current_user else None
     return conversation_repository.create_conversation(
         feature=req.feature,
         mode=req.mode,
         language=req.language,
-        title=req.title
+        title=req.title,
+        user_id=user_id
     )
 
 @router.get("/{conv_id}")
