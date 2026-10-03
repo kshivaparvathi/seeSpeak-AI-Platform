@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any, List
 
 from backend.utils.logging import logger
 
-DB_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "see_speak.db")
+DB_FILE = os.getenv("DATABASE_PATH") or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "see_speak.db")
 
 class UserRepository:
     def __init__(self, db_path: str = DB_FILE):

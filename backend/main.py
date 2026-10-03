@@ -27,17 +27,20 @@ app = FastAPI(
 )
 
 # CORS Middleware (configured for credentialed HTTP-only cookie support)
+cors_origins_raw = os.getenv("CORS_ORIGINS", "")
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+if cors_origins_raw:
+    allowed_origins.extend([o.strip() for o in cors_origins_raw.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    ],
+    allow_origin_regex=r"^https?://.*$" if os.getenv("CORS_ALLOW_ALL", "true").lower() == "true" else r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -96,4 +99,6 @@ async def startup_event():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    reload_enabled = os.getenv("ENVIRONMENT", "development").lower() == "development"
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=reload_enabled)
