@@ -352,11 +352,11 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsSidebarOpen(true)}
-        className="fixed top-3 left-3 z-40 p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-slate-300 md:hidden shadow-md cursor-pointer"
+        className="fixed top-3 left-3 z-40 p-2 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 md:hidden shadow-md cursor-pointer"
         aria-label="Toggle history menu"
       >
         <Menu size={18} />

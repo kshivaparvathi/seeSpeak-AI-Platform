@@ -4,6 +4,7 @@ import { SupportedLanguage, Conversation, Message, ConversationFile } from '../t
 import { getLanguageInfo } from '../config/languages';
 import { MultimodalChat } from '../components/MultimodalChat';
 import { VoiceModal } from '../components/VoiceModal';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { 
   FileText, 
   Image as ImageIcon, 
@@ -237,27 +238,30 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-950 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden transition-colors">
       {/* Top Header Bar */}
-      <header className="px-4 py-2.5 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md flex items-center justify-between shrink-0">
+      <header className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/60 backdrop-blur-md flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
             <Sparkles size={16} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-white tracking-tight">seeSpeak AI</h1>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono">
+              <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">seeSpeak AI</h1>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-300 font-mono">
                 Multimodal Assistant
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
               Intelligent conversational workspace with 6 specialized AI modules
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Theme Toggle Sun / Moon */}
+          <ThemeToggle />
+
           {messages.length > 0 && (
             <button
               onClick={() => {
@@ -266,10 +270,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 setMessages([]);
                 setAttachedFiles([]);
               }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               title="Start a new clean chat"
             >
-              <PlusCircle size={13} className="text-indigo-400" />
+              <PlusCircle size={13} className="text-indigo-500 dark:text-indigo-400" />
               <span className="hidden md:inline">New Chat</span>
             </button>
           )}
@@ -277,7 +281,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {onShowIntro && (
             <button
               onClick={onShowIntro}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-800 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
             >
               <Compass size={13} />
               <span className="hidden sm:inline">Intro</span>
@@ -309,35 +313,35 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <button
                   key={feature.id}
                   onClick={() => onNavigate(feature.route)}
-                  className={`p-4 rounded-2xl bg-gradient-to-br ${feature.colorScheme.bg} bg-slate-900/80 border ${feature.colorScheme.border} hover:border-indigo-400/50 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl group flex flex-col justify-between text-left cursor-pointer shadow-md`}
+                  className={`p-4 rounded-2xl bg-gradient-to-br ${feature.colorScheme.bg} bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:${feature.colorScheme.border} hover:border-indigo-400/50 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl group flex flex-col justify-between text-left cursor-pointer shadow-sm dark:shadow-md`}
                 >
                   <div>
                     <div className="flex items-start justify-between mb-2.5 w-full">
-                      <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60 shadow-inner group-hover:scale-105 transition-transform">
+                      <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 shadow-inner group-hover:scale-105 transition-transform">
                         {getFeatureIcon(feature.id)}
                       </div>
-                      <div className="w-6 h-6 rounded-lg bg-slate-800/40 border border-slate-700/40 flex items-center justify-center text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all">
+                      <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/40 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-white transition-all">
                         <ArrowRight size={12} />
                       </div>
                     </div>
 
-                    <h3 className="font-bold text-white text-sm group-hover:text-indigo-300 transition-colors">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
                       {feature.title}
                     </h3>
-                    <div className="text-[10px] font-mono text-indigo-400/80 mb-1">
+                    <div className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400/80 mb-1">
                       {feature.tagline}
                     </div>
-                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
                       {feature.description}
                     </p>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-medium">
                     <span className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span>Isolated Mode</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                      <span className="text-slate-600 dark:text-slate-400">Isolated Mode</span>
                     </span>
-                    <span className="text-indigo-400 group-hover:translate-x-0.5 transition-transform font-mono text-xs font-semibold">
+                    <span className="text-indigo-600 dark:text-indigo-400 group-hover:translate-x-0.5 transition-transform font-mono text-xs font-semibold">
                       Launch →
                     </span>
                   </div>
@@ -349,7 +353,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {/* Secondary Ribbon if messages are active */}
         {messages.length > 0 && (
-          <div className="px-4 py-2 bg-slate-950/90 border-b border-slate-800/50 flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-800 shrink-0">
+          <div className="px-4 py-2 bg-slate-100/90 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800/50 flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800 shrink-0">
             <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono shrink-0 mr-1 hidden sm:inline">
               Jump To Workspace:
             </span>
@@ -357,11 +361,11 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 key={feat.id}
                 onClick={() => onNavigate(feat.route)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800/80 hover:border-slate-700 text-xs text-slate-300 hover:text-white transition-all whitespace-nowrap cursor-pointer shrink-0 hover:shadow-md group"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800/80 hover:border-indigo-400 text-xs text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white transition-all whitespace-nowrap cursor-pointer shrink-0 shadow-sm group"
               >
                 {getFeatureIcon(feat.id)}
                 <span className="font-medium">{feat.title}</span>
-                <ArrowRight size={11} className="text-slate-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight size={11} className="text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
               </button>
             ))}
           </div>

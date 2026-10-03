@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Conversation } from '../types';
 import { getFeatureConfig } from '../config/features';
+import { ThemeToggle } from './ThemeToggle';
 
 interface ConversationSidebarProps {
   conversations: Conversation[];
@@ -160,8 +161,8 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 key={`${isFavoriteSection ? 'fav_' : ''}${conv.id}`}
                 className={`group relative flex items-center justify-between px-3 py-2 rounded-xl text-xs md:text-sm transition-all duration-150 ${
                   isActive
-                    ? 'bg-indigo-600/20 text-white border border-indigo-500/40 shadow-sm'
-                    : 'text-slate-300 hover:bg-slate-900/80 hover:text-white border border-transparent'
+                    ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-900 dark:text-white border border-indigo-200 dark:border-indigo-500/40 shadow-sm font-semibold'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-900/80 hover:text-slate-900 dark:hover:text-white border border-transparent'
                 }`}
               >
                 {/* Editing Inline Form */}
@@ -297,25 +298,25 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
       {/* Sidebar Panel */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 w-72 bg-slate-950 border-r border-slate-800/90 z-50 transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 flex flex-col ${
+        className={`fixed top-0 bottom-0 left-0 w-72 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/90 z-50 transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 flex flex-col shadow-lg md:shadow-none ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* App Title & Header */}
-        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
               <Sparkles size={16} />
             </div>
             <div>
-              <span className="font-extrabold text-white text-base tracking-tight">seeSpeak AI</span>
-              <span className="block text-[10px] text-indigo-400 font-mono">v2.1 Isolated Context</span>
+              <span className="font-extrabold text-slate-900 dark:text-white text-base tracking-tight">seeSpeak AI</span>
+              <span className="block text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">v2.1 Isolated Context</span>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white md:hidden"
+            className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white md:hidden cursor-pointer"
           >
             <ChevronLeft size={20} />
           </button>
@@ -324,10 +325,10 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         {/* Feature Scope Indicator / Filter Header */}
         {activeFeatureConfig && (
           <div className="px-3 pt-3 pb-1">
-            <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px]">
-              <span className="text-slate-400 truncate">
+            <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px]">
+              <span className="text-slate-600 dark:text-slate-400 truncate">
                 {filterByActiveFeature ? (
-                  <span className="font-semibold text-indigo-300">
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-300">
                     {activeFeatureConfig.title.toUpperCase()}
                   </span>
                 ) : (
@@ -336,7 +337,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
               </span>
               <button
                 onClick={onToggleFilterFeature}
-                className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-1 font-mono cursor-pointer"
+                className="text-[10px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex items-center gap-1 font-mono cursor-pointer"
                 title="Toggle feature filter"
               >
                 <Filter size={11} />
@@ -364,21 +365,21 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         {/* Search Field */}
         <div className="px-3 pb-2">
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-2.5 text-slate-500" />
+            <Search size={14} className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-500" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl pl-8 pr-3 py-2 focus:outline-none focus:border-indigo-500/70"
+              className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 text-xs rounded-xl pl-8 pr-3 py-2 focus:outline-none focus:border-indigo-500/70"
             />
           </div>
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-slate-800">
+        <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
           {conversations.length === 0 ? (
-            <div className="text-center text-slate-600 text-xs py-8">
+            <div className="text-center text-slate-500 dark:text-slate-600 text-xs py-8">
               {searchQuery ? 'No matching conversations' : 'No conversations in this workspace'}
             </div>
           ) : (
@@ -391,9 +392,10 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
           )}
         </div>
 
-        {/* Footer info */}
-        <div className="p-3 border-t border-slate-900 text-center text-[11px] text-slate-600 font-mono">
-          Context & Files Strictly Isolated
+        {/* Footer info & Theme Toggle */}
+        <div className="p-3 border-t border-slate-200 dark:border-slate-900 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+          <span className="truncate">Context Isolated</span>
+          <ThemeToggle />
         </div>
       </aside>
     </>

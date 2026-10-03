@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import base64
 import asyncio
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException
@@ -127,6 +128,7 @@ class ChatMessageRequest(BaseModel):
     language: Optional[str] = "en"
     feature: Optional[str] = "document-analysis"
     feature_id: Optional[str] = None
+    screen_image: Optional[str] = None
 
 def get_gemini_client() -> Optional[genai.Client]:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
@@ -232,7 +234,12 @@ async def send_chat_message(req: ChatMessageRequest):
         "3. GROUNDING: If files are attached, analyze and answer strictly based on the actual contents of the uploaded files. Do NOT provide generic 3-step placeholder answers. Give concrete, detailed, accurate explanations.\n"
         "4. SCRIPT FIDELITY: When responding in Indian languages (Telugu, Hindi, Kannada, Marathi, Tamil, Bengali, Malayalam, Gujarati, Punjabi, Urdu), write exclusively in authentic native script.\n"
         "5. CODE PRESERVATION: Preserve programming code, syntax, identifiers, and markdown formatting in original English without translating code snippets.\n"
-        "6. QUICK ACTIONS & STUDY ADAPTATION: When requested for Exam Prep, Short Notes, Important Points, Summarize, Step-by-Step, Viva Questions, or Depth Level (Light, Moderate, Detailed), format your response with the exact requested academic structure, bold headings, and grounded bullet points."
+        "6. QUICK ACTIONS & STUDY ADAPTATION: When requested for Exam Prep, Short Notes, Important Points, Summarize, Step-by-Step, Viva Questions, or Depth Level (Light, Moderate, Detailed), format your response with the exact requested academic structure, bold headings, and grounded bullet points.\n"
+        "7. SCREEN ASSISTANCE & STEP-BY-STEP GUIDANCE: When a shared screen frame is attached:\n"
+        "   - Analyze the user's active window, code editor, application, terminal, or error prompt.\n"
+        "   - If they ask 'Why is this failing?' or 'What should I do here?', explain the error or context clearly.\n"
+        "   - Provide beginner-friendly, concrete instructions pointing them to the exact tab, button, or code line to modify.\n"
+        "   - NEVER claim you have cursor control or can click for them; instead, act as an articulate, encouraging human mentor guiding their hands."
     )
 
     # Build contents strictly with files from THIS conversation only
@@ -245,14 +252,26 @@ async def send_chat_message(req: ChatMessageRequest):
         if part:
             contents.append(part)
 
-    # 2. Add previous conversation history strictly for this conversation
+    # 2. Attach active screen frame if provided
+    if req.screen_image:
+        try:
+            img_data = req.screen_image
+            if "," in img_data:
+                img_data = img_data.split(",", 1)[1]
+            img_bytes = base64.b64decode(img_data)
+            contents.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
+            logger.info(f"Attached screen context frame ({len(img_bytes)} bytes) to Gemini contents")
+        except Exception as e:
+            logger.error(f"Failed to decode screen_image: {e}")
+
+    # 3. Add previous conversation history strictly for this conversation
     past_messages = conv.get("messages", [])
     recent_history = past_messages[-10:-1] if len(past_messages) > 1 else []
     for msg in recent_history:
         role = "user" if msg["role"] == "user" else "model"
         contents.append(types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])]))
 
-    # 3. Add current user prompt
+    # 4. Add current user prompt
     contents.append(types.Part.from_text(text=req.message))
 
     # Call Gemini with candidate models fallback
@@ -350,7 +369,12 @@ async def stream_chat_message(req: ChatMessageRequest):
         "3. GROUNDING: If files are attached, analyze and answer strictly based on the actual contents of the uploaded files. Do NOT provide generic 3-step placeholder answers. Give concrete, detailed, accurate explanations.\n"
         "4. SCRIPT FIDELITY: When responding in Indian languages (Telugu, Hindi, Kannada, Marathi, Tamil, Bengali, Malayalam, Gujarati, Punjabi, Urdu), write exclusively in authentic native script.\n"
         "5. CODE PRESERVATION: Preserve programming code, syntax, identifiers, and markdown formatting in original English without translating code snippets.\n"
-        "6. QUICK ACTIONS & STUDY ADAPTATION: When requested for Exam Prep, Short Notes, Important Points, Summarize, Step-by-Step, Viva Questions, or Depth Level (Light, Moderate, Detailed), format your response with the exact requested academic structure, bold headings, and grounded bullet points."
+        "6. QUICK ACTIONS & STUDY ADAPTATION: When requested for Exam Prep, Short Notes, Important Points, Summarize, Step-by-Step, Viva Questions, or Depth Level (Light, Moderate, Detailed), format your response with the exact requested academic structure, bold headings, and grounded bullet points.\n"
+        "7. SCREEN ASSISTANCE & STEP-BY-STEP GUIDANCE: When a shared screen frame is attached:\n"
+        "   - Analyze the user's active window, code editor, application, terminal, or error prompt.\n"
+        "   - If they ask 'Why is this failing?' or 'What should I do here?', explain the error or context clearly.\n"
+        "   - Provide beginner-friendly, concrete instructions pointing them to the exact tab, button, or code line to modify.\n"
+        "   - NEVER claim you have cursor control or can click for them; instead, act as an articulate, encouraging human mentor guiding their hands."
     )
 
     contents: List[Any] = []
@@ -359,6 +383,18 @@ async def stream_chat_message(req: ChatMessageRequest):
         part = build_file_part(f_rec)
         if part:
             contents.append(part)
+
+    # Attach active screen frame if provided
+    if req.screen_image:
+        try:
+            img_data = req.screen_image
+            if "," in img_data:
+                img_data = img_data.split(",", 1)[1]
+            img_bytes = base64.b64decode(img_data)
+            contents.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
+            logger.info(f"Attached screen context frame ({len(img_bytes)} bytes) to Gemini streaming contents")
+        except Exception as e:
+            logger.error(f"Failed to decode screen_image: {e}")
 
     past_messages = conv.get("messages", [])
     recent_history = past_messages[-10:-1] if len(past_messages) > 1 else []

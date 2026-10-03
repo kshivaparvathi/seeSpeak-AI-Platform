@@ -195,10 +195,10 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
                     <button
                       key={idx}
                       onClick={() => onSendMessage(p.text)}
-                      className="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 text-xs text-slate-300 hover:text-white transition-all hover:border-indigo-500/40 cursor-pointer"
+                      className="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white transition-all hover:border-indigo-400 dark:hover:border-indigo-500/40 cursor-pointer shadow-sm"
                     >
                       <span>{p.text}</span>
-                      <span className="text-[10px] px-1 rounded bg-slate-800 text-slate-400">
+                      <span className="text-[10px] px-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
                         {p.langHint}
                       </span>
                     </button>
@@ -217,7 +217,7 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
               }`}
             >
               {msg.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5 shadow-sm">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600/10 dark:bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5 shadow-sm">
                   <Bot size={17} />
                 </div>
               )}
@@ -227,21 +227,21 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
                 className={`group relative max-w-[88%] md:max-w-[80%] px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap ${
                   msg.role === 'user'
                     ? 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-600/20'
-                    : 'bg-slate-900/90 text-slate-100 border border-slate-800/90 rounded-tl-none shadow-sm'
+                    : 'bg-white dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800/90 rounded-tl-none shadow-sm'
                 }`}
               >
                 {msg.content}
 
                 {/* Assistant Message Actions (Copy & Read Aloud) */}
                 {msg.role === 'assistant' && (
-                  <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-slate-800/60 text-slate-500 text-xs">
+                  <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-slate-400 dark:text-slate-500 text-xs">
                     <button
                       onClick={() => handleCopy(msg.content, msg.id)}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] hover:text-white hover:bg-slate-800 cursor-pointer transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
                       title="Copy response"
                     >
                       {copiedId === msg.id ? (
-                        <Check size={12} className="text-emerald-400" />
+                        <Check size={12} className="text-emerald-500 dark:text-emerald-400" />
                       ) : (
                         <Copy size={12} />
                       )}
@@ -250,14 +250,14 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
 
                     <button
                       onClick={() => handleSpeak(msg.content, msg.id)}
-                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] hover:text-white hover:bg-slate-800 cursor-pointer transition-colors ${
-                        speakingId === msg.id ? 'text-indigo-400 font-semibold' : ''
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors ${
+                        speakingId === msg.id ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : ''
                       }`}
                       title={speakingId === msg.id ? 'Stop reading' : 'Read aloud with natural speech'}
                     >
                       <Volume2
                         size={12}
-                        className={speakingId === msg.id ? 'text-indigo-400 animate-pulse' : ''}
+                        className={speakingId === msg.id ? 'text-indigo-600 dark:text-indigo-400 animate-pulse' : ''}
                       />
                       <span>{speakingId === msg.id ? 'Stop Speaking' : 'Read Aloud'}</span>
                     </button>
@@ -266,7 +266,7 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
               </div>
 
               {msg.role === 'user' && (
-                <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 shrink-0 mt-0.5 shadow-sm">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0 mt-0.5 shadow-sm">
                   <User size={17} />
                 </div>
               )}
@@ -277,24 +277,24 @@ export const MultimodalChat: React.FC<MultimodalChatProps> = ({
         {/* Live Streaming Response preview */}
         {streamingText && (
           <div className="flex items-start gap-3 text-sm md:text-base animate-fadeIn justify-start">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600/10 dark:bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5">
               <Bot size={17} />
             </div>
-            <div className="max-w-[88%] md:max-w-[80%] px-4 py-3 rounded-2xl bg-slate-900/90 text-slate-100 border border-slate-800 rounded-tl-none shadow-sm leading-relaxed whitespace-pre-wrap">
+            <div className="max-w-[88%] md:max-w-[80%] px-4 py-3 rounded-2xl bg-white dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-tl-none shadow-sm leading-relaxed whitespace-pre-wrap">
               {streamingText}
-              <span className="inline-block w-2 h-4 ml-1 bg-indigo-400 rounded animate-pulse" />
+              <span className="inline-block w-2 h-4 ml-1 bg-indigo-500 rounded animate-pulse" />
             </div>
           </div>
         )}
 
         {/* Loading / Thinking Indicator */}
         {isLoading && !streamingText && (
-          <div className="flex items-center gap-3 text-sm text-slate-400 pl-2">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 animate-pulse">
+          <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 pl-2">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600/10 dark:bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 animate-pulse">
               <Sparkles size={16} />
             </div>
-            <div className="flex items-center gap-1.5 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-800 text-xs font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+            <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 text-xs font-mono shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
               <span>Analyzing grounded context with Gemini...</span>
             </div>
           </div>

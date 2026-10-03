@@ -213,7 +213,7 @@ export const SupportSession: React.FC<SupportSessionProps> = ({
   }, [initialPrompt]);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-950 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden transition-colors">
       <ConversationHeader
         title="Customer Support Agent"
         subtitle={conversation?.title || "Empathetic Technical & Account Care • Step-by-Step Resolution"}
@@ -225,7 +225,7 @@ export const SupportSession: React.FC<SupportSessionProps> = ({
       />
 
       {/* Support Status Banner */}
-      <div className="bg-emerald-950/30 border-b border-emerald-500/20 px-4 py-2 flex items-center justify-between text-xs text-emerald-200">
+      <div className="bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-200 dark:border-emerald-500/20 px-4 py-2 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200">
         <div className="flex items-center gap-2">
           <LifeBuoy size={15} className="text-emerald-400" />
           <span className="font-semibold">Dedicated Care Agent:</span>

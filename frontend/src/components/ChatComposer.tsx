@@ -281,14 +281,14 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
       {/* Active Listening Floating Banner */}
       {isListening && (
-        <div className="absolute bottom-full mb-2 left-0 right-0 bg-slate-900/95 border-2 border-rose-500/50 rounded-2xl p-3 shadow-2xl z-40 backdrop-blur-md animate-fadeIn flex flex-col gap-2">
+        <div className="absolute bottom-full mb-2 left-0 right-0 bg-white/95 dark:bg-slate-900/95 border-2 border-rose-500/50 rounded-2xl p-3 shadow-2xl z-40 backdrop-blur-md animate-fadeIn flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
               </span>
-              <span className="text-xs font-semibold text-rose-300">
+              <span className="text-xs font-semibold text-rose-600 dark:text-rose-300">
                 Listening in {currentLang.name}... Speak your complete question
               </span>
             </div>
@@ -300,7 +300,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                 className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                   liveTranscript.trim() || finalTranscriptRef.current
                     ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/30'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                 }`}
               >
                 <Check size={13} />
@@ -309,18 +309,18 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               <button
                 type="button"
                 onClick={handleCancelListening}
-                className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors cursor-pointer"
+                className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs transition-colors cursor-pointer"
               >
                 Cancel
               </button>
             </div>
           </div>
 
-          <div className="text-sm text-slate-100 bg-slate-950/70 rounded-xl px-3 py-2 border border-slate-800/80 font-medium min-h-[36px] flex items-center">
+          <div className="text-sm text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950/70 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-800/80 font-medium min-h-[36px] flex items-center">
             {liveTranscript ? (
-              <span className="text-white italic">"{liveTranscript}"</span>
+              <span className="text-slate-900 dark:text-white italic">"{liveTranscript}"</span>
             ) : (
-              <span className="text-slate-500 text-xs font-mono animate-pulse">
+              <span className="text-slate-400 dark:text-slate-500 text-xs font-mono animate-pulse">
                 [Audio stream active — speak now...]
               </span>
             )}
@@ -332,9 +332,9 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       {showLangMenu && (
         <div
           ref={menuRef}
-          className="absolute bottom-full mb-2 left-0 w-64 max-h-72 overflow-y-auto rounded-2xl bg-slate-900 border border-slate-700/80 shadow-2xl p-2 z-50 scrollbar-thin scrollbar-thumb-slate-800"
+          className="absolute bottom-full mb-2 left-0 w-64 max-h-72 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 shadow-2xl p-2 z-50 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800"
         >
-          <div className="px-2.5 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          <div className="px-2.5 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Select Preferred Language
           </div>
           <div className="space-y-0.5">
@@ -348,7 +348,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
                   selectedLanguage === lang.code
                     ? 'bg-indigo-600 text-white font-medium'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <span className="flex items-center gap-2">
@@ -363,10 +363,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       )}
 
       {/* Main Composer Box */}
-      <div className={`flex flex-col rounded-2xl bg-slate-900/90 border transition-all shadow-lg p-2.5 ${
+      <div className={`flex flex-col rounded-2xl bg-white dark:bg-slate-900/90 border transition-all shadow-md dark:shadow-lg p-2.5 ${
         isListening
           ? 'border-rose-500/70 ring-2 ring-rose-500/20'
-          : 'border-slate-800 focus-within:border-indigo-500/70 focus-within:ring-2 focus-within:ring-indigo-500/20'
+          : 'border-slate-200 dark:border-slate-800 focus-within:border-indigo-500/70 focus-within:ring-2 focus-within:ring-indigo-500/20'
       }`}>
         <textarea
           ref={textareaRef}
@@ -382,12 +382,12 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           }
           rows={1}
           disabled={isLoading || isListening}
-          className={`w-full bg-transparent text-slate-100 placeholder-slate-500 text-sm md:text-base resize-none focus:outline-none px-2 py-1 max-h-40 leading-relaxed ${
+          className={`w-full bg-transparent text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm md:text-base resize-none focus:outline-none px-2 py-1 max-h-40 leading-relaxed ${
             isListening ? 'opacity-60 cursor-not-allowed' : ''
           }`}
         />
 
-        <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-800/80 mt-1 gap-2">
+        <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80 mt-1 gap-2">
           {/* Left Action Controls: Upload + Quick Actions + Language + Voice Toggle */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {onTriggerFileUpload && (
@@ -396,7 +396,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                 onClick={onTriggerFileUpload}
                 title="Attach document or media"
                 disabled={isLoading || isListening}
-                className="p-2 rounded-xl text-slate-400 hover:text-indigo-300 hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+                className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Paperclip size={18} />
               </button>
@@ -413,10 +413,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               type="button"
               onClick={() => setShowLangMenu(!showLangMenu)}
               disabled={isLoading || isListening}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer disabled:opacity-50"
               title="Change recognition and response language"
             >
-              <Globe size={14} className="text-indigo-400" />
+              <Globe size={14} className="text-indigo-600 dark:text-indigo-400" />
               <span>{currentLang.flag}</span>
               <span className="font-medium hidden sm:inline">{currentLang.name}</span>
             </button>
@@ -429,14 +429,14 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                 title={isVoiceOutputEnabled ? 'Voice output is ON (AI speaks responses)' : 'Voice output is OFF'}
                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs transition-colors cursor-pointer ${
                   isVoiceOutputEnabled
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                    : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
+                    ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
+                    : 'bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 {isVoiceOutputEnabled ? (
-                  <Volume2 size={14} className="text-emerald-400" />
+                  <Volume2 size={14} className="text-emerald-600 dark:text-emerald-400" />
                 ) : (
-                  <VolumeX size={14} className="text-slate-500" />
+                  <VolumeX size={14} className="text-slate-400 dark:text-slate-500" />
                 )}
                 <span className="font-medium hidden md:inline">
                   {isVoiceOutputEnabled ? 'Voice: ON' : 'Voice: OFF'}
@@ -459,7 +459,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               className={`p-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
                 isListening
                   ? 'bg-rose-600 text-white animate-pulse shadow-lg shadow-rose-600/40'
-                  : 'text-slate-400 hover:text-rose-400 hover:bg-slate-800 active:scale-95'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
               }`}
             >
               {isListening ? <MicOff size={18} /> : <Mic size={18} />}
@@ -472,9 +472,9 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                 type="button"
                 onClick={onOpenVoice}
                 title="Start Real-Time Streaming Audio Conversation"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500/20 to-indigo-500/20 hover:from-rose-500/30 hover:to-indigo-500/30 border border-rose-500/40 text-rose-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500/10 to-indigo-500/10 dark:from-rose-500/20 dark:to-indigo-500/20 hover:from-rose-500/20 hover:to-indigo-500/20 dark:hover:from-rose-500/30 dark:hover:to-indigo-500/30 border border-rose-300 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
               >
-                <Radio size={14} className="text-rose-400 animate-pulse" />
+                <Radio size={14} className="text-rose-500 dark:text-rose-400 animate-pulse" />
                 <span className="text-xs font-semibold hidden sm:inline">Live Voice</span>
               </button>
             )}
@@ -487,7 +487,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               className={`p-2.5 rounded-xl font-medium transition-all duration-150 flex items-center justify-center ${
                 text.trim() && !isLoading && !isListening
                   ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95'
-                  : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
               }`}
             >
               <Send size={16} />
