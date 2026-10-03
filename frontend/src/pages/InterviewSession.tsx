@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ConversationHeader } from '../components/ConversationHeader';
 import { InterviewSoundBox } from '../components/InterviewSoundBox';
-import { useScreenShare } from '../hooks/useScreenShare';
 import { getFeatureConfig } from '../config/features';
 import { Conversation, Message, ConversationFile, SupportedLanguage } from '../types';
 import { speakText, stopSpeaking, detectLanguageFromText, isSpeaking } from '../utils/speech';
@@ -19,8 +18,6 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
-  Monitor,
-  MonitorOff,
   Upload,
   Volume2,
   VolumeX,
@@ -65,16 +62,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [autoTts, setAutoTts] = useState(true);
   const [typedInput, setTypedInput] = useState('');
-
-  // Screen Sharing Hook
-  const {
-    isSharing,
-    videoRef,
-    startScreenShare,
-    stopScreenShare,
-    captureScreenFrame,
-    error: screenShareError,
-  } = useScreenShare();
 
   // Hidden File Input Ref
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -201,7 +188,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
     }
   };
 
-  // Handle Send Candidate Spoken or Typed Response (with Screen Context if active!)
+  // Handle Send Candidate Spoken or Typed Response
   const handleSendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
@@ -215,9 +202,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
       setIsLoading(false);
       return;
     }
-
-    // Capture screen frame if screen sharing is currently active
-    const screenFrame = isSharing ? captureScreenFrame() : null;
 
     const tempUserMsg: Message = {
       id: `temp_${Date.now()}`,
@@ -256,7 +240,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
           message: text,
           language: selectedLanguage,
           feature: 'ai-interview',
-          screen_image: screenFrame || undefined,
         }),
       });
 
@@ -721,34 +704,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
                 <Upload size={14} className="text-blue-500" />
                 <span>Upload Resume / JD</span>
               </button>
-
-              {/* Screen Share Button */}
-              {!isSharing ? (
-                <button
-                  onClick={startScreenShare}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-500/40 text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition-all cursor-pointer shadow-sm"
-                  title="Share your code editor, problem window, or interface for AI guidance"
-                >
-                  <Monitor size={14} className="text-indigo-600 dark:text-indigo-400" />
-                  <span>🖥 Share Screen</span>
-                </button>
-              ) : (
-                <button
-                  onClick={stopScreenShare}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-500/40 text-xs font-semibold text-rose-700 dark:text-rose-300 transition-all cursor-pointer shadow-sm animate-pulse"
-                >
-                  <MonitorOff size={14} className="text-rose-600" />
-                  <span>🛑 Stop Sharing</span>
-                </button>
-              )}
-
-              {/* Screen Sharing Active Indicator Badge */}
-              {isSharing && (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-medium">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  <span>Screen Sharing Active</span>
-                </div>
-              )}
             </div>
 
             {/* End Interview Quick Button */}
@@ -763,32 +718,6 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({
               </button>
             )}
           </div>
-
-          {/* Active Screen Sharing Preview PIP (when sharing is active) */}
-          {isSharing && (
-            <div className="p-4 rounded-3xl bg-slate-900 border border-indigo-500/40 shadow-xl overflow-hidden animate-fadeIn">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                    Live Screen Stream (AI Screen Context Active)
-                  </span>
-                </div>
-                <span className="text-[11px] text-indigo-300 font-mono hidden sm:inline">
-                  Speak any question to inspect code, errors, or forms
-                </span>
-              </div>
-              <div className="w-full max-h-56 bg-black rounded-2xl overflow-hidden flex items-center justify-center border border-slate-800">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-auto max-h-56 object-contain"
-                />
-              </div>
-            </div>
-          )}
 
           {/* SECTION 4: CONVERSATION TRANSCRIPT & HISTORY */}
           <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-5">

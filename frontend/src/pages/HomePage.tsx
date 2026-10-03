@@ -16,7 +16,9 @@ import {
   Compass,
   ArrowRight,
   PlusCircle,
-  Zap
+  Zap,
+  Award,
+  Monitor
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -232,8 +234,13 @@ export const HomePage: React.FC<HomePageProps> = ({
       case 'video-audio-review':
         return <Video size={18} className="text-amber-400" />;
       case 'data-study':
-      default:
         return <BarChart3 size={18} className="text-indigo-400" />;
+      case 'ai-resume-builder':
+        return <Award size={18} className="text-emerald-400" />;
+      case 'ai-screen-assistant':
+        return <Monitor size={18} className="text-cyan-400" />;
+      default:
+        return <Sparkles size={18} className="text-indigo-400" />;
     }
   };
 
@@ -253,7 +260,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
-              Intelligent conversational workspace with 6 specialized AI modules
+              Intelligent conversational workspace with 8 specialized AI modules
             </p>
           </div>
         </div>

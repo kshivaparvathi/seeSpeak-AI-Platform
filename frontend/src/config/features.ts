@@ -196,6 +196,57 @@ export const FEATURES: FeatureConfig[] = [
       { text: 'Generate a clean table breakdown of the metrics', langHint: '📈 Tables' },
     ],
   },
+  {
+    id: 'ai-resume-builder',
+    title: 'AI Resume Builder',
+    tagline: 'ATS-Friendly Professional Resumes',
+    description: 'Build a high-impact, ATS-optimized resume using your voice or text, choose a professional template, and download in PDF or DOCX.',
+    route: '/ai-resume-builder',
+    aliases: ['resume', 'feature/resume', 'resume-builder'],
+    iconName: 'FileText',
+    colorScheme: {
+      bg: 'from-teal-600/15 via-emerald-900/10 to-transparent',
+      border: 'border-teal-500/20 hover:border-teal-400/50',
+      text: 'text-teal-400',
+      glow: 'shadow-teal-500/10',
+      accent: '#14b8a6',
+    },
+    supportedMimeTypes: [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ],
+    samplePrompts: [
+      { text: 'Create an ATS-friendly Software Engineer resume from scratch', langHint: '📝 Resume' },
+      { text: 'Extract my education and projects from what I tell you', langHint: '🎤 Voice Input' },
+      { text: 'Tailor my resume for a Senior Cloud Architect role at AWS', langHint: '🎯 Tailor' },
+      { text: 'Analyze my resume against the Job Description and show gaps', langHint: '🔍 ATS Score' },
+    ],
+  },
+  {
+    id: 'ai-screen-assistant',
+    title: 'AI Screen Assistant',
+    tagline: 'Real-Time Live Screen Guidance',
+    description: 'Share your screen and receive real-time, step-by-step guidance from AI for scholarship forms, portals, AWS consoles, and error debugging.',
+    route: '/ai-screen-assistant',
+    aliases: ['screen', 'feature/screen', 'screen-assistant'],
+    iconName: 'Monitor',
+    colorScheme: {
+      bg: 'from-sky-600/15 via-blue-900/10 to-transparent',
+      border: 'border-sky-500/20 hover:border-sky-400/50',
+      text: 'text-sky-400',
+      glow: 'shadow-sky-500/10',
+      accent: '#0284c7',
+    },
+    supportedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    samplePrompts: [
+      { text: 'What should I do on this screen? Guide me step by step', langHint: '🖥️ Screen Guide' },
+      { text: 'Why is this error happening on my screen and how do I fix it?', langHint: '🛠️ Debug' },
+      { text: 'Is anything missing in this scholarship application form?', langHint: '📋 Form Check' },
+      { text: 'Explain this portal dashboard in simple terms', langHint: '💡 Explain' },
+    ],
+  },
 ];
 
 export function getFeatureConfig(idOrRoute: string): FeatureConfig {

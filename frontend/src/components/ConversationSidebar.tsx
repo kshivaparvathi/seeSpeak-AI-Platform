@@ -17,7 +17,9 @@ import {
   Sparkles,
   ChevronLeft,
   Filter,
-  Star
+  Star,
+  Award,
+  Monitor
 } from 'lucide-react';
 import { Conversation } from '../types';
 import { getFeatureConfig } from '../config/features';
@@ -130,8 +132,15 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         return <Video size={14} className="text-amber-400 shrink-0" />;
       case 'data-study':
       case 'study':
-      default:
         return <BarChart3 size={14} className="text-indigo-400 shrink-0" />;
+      case 'ai-resume-builder':
+      case 'resume':
+        return <Award size={14} className="text-emerald-400 shrink-0" />;
+      case 'ai-screen-assistant':
+      case 'screen':
+        return <Monitor size={14} className="text-cyan-400 shrink-0" />;
+      default:
+        return <Sparkles size={14} className="text-indigo-400 shrink-0" />;
     }
   };
 

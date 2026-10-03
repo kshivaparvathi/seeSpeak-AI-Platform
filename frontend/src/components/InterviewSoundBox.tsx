@@ -11,6 +11,10 @@ interface InterviewSoundBoxProps {
   selectedLanguage: SupportedLanguage;
   currentQuestion?: string;
   disabled?: boolean;
+  title?: string;
+  idlePlaceholder?: string;
+  startLabel?: string;
+  stopLabel?: string;
 }
 
 export type SoundBoxState = 'idle' | 'listening' | 'processing' | 'ai_speaking' | 'error';
@@ -22,6 +26,10 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
   selectedLanguage,
   currentQuestion,
   disabled = false,
+  title,
+  idlePlaceholder = 'Click [ START ] to speak',
+  startLabel = '▶ START RECORDING',
+  stopLabel = '■ STOP & SUBMIT',
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -331,14 +339,14 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
 
           <span className="text-xs font-bold font-mono tracking-wider uppercase text-slate-800 dark:text-slate-200">
             {state === 'listening'
-              ? '● Listening to your response'
+              ? '● Listening...'
               : state === 'processing'
-              ? '⚡ Analyzing your response...'
+              ? '⚡ Analyzing input...'
               : state === 'ai_speaking'
-              ? '🔊 Interviewer speaking...'
+              ? '🔊 AI Speaking...'
               : state === 'error'
               ? '⚠ Microphone alert'
-              : '● Voice Box Ready'}
+              : (title || '● Voice Box Ready')}
           </span>
         </div>
 
@@ -374,7 +382,7 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
         {!isRecording && !isProcessing && !isAiSpeaking && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-slate-900/10 dark:bg-slate-950/20 backdrop-blur-[1px]">
             <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">
-              Click [ START ] to speak your interview response
+              {idlePlaceholder}
             </span>
           </div>
         )}
@@ -407,7 +415,7 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
             className="flex-1 max-w-xs flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Play size={17} className="fill-white" />
-            <span>▶ START RECORDING</span>
+            <span>{startLabel}</span>
           </button>
         ) : (
           <button
@@ -416,7 +424,7 @@ export const InterviewSoundBox: React.FC<InterviewSoundBoxProps> = ({
             className="flex-1 max-w-xs flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-sm shadow-lg shadow-rose-600/40 hover:shadow-rose-600/50 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer animate-pulse"
           >
             <Square size={16} className="fill-white" />
-            <span>■ STOP & SUBMIT ANSWER</span>
+            <span>{stopLabel}</span>
           </button>
         )}
       </div>

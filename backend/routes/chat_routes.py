@@ -111,6 +111,8 @@ FEATURE_PROMPT_FILES = {
     "customer-support": "customer_support.md",
     "video-audio-review": "video_audio_review.md",
     "data-study": "data_study.md",
+    "ai-resume-builder": "ai_resume_builder.md",
+    "ai-screen-assistant": "ai_screen_assistant.md",
 }
 
 def get_feature_system_prompt(feature_id: str) -> str:

@@ -24,6 +24,12 @@ FEATURE_MAPPING = {
     "video-audio-review": "video-audio-review",
     "study": "data-study",
     "data-study": "data-study",
+    "resume": "ai-resume-builder",
+    "ai-resume-builder": "ai-resume-builder",
+    "resume-builder": "ai-resume-builder",
+    "screen": "ai-screen-assistant",
+    "ai-screen-assistant": "ai-screen-assistant",
+    "screen-assistant": "ai-screen-assistant",
 }
 
 def normalize_feature_id(feature: Optional[str]) -> str:
@@ -112,6 +118,21 @@ class ConversationRepository:
                     updated_at TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_interview_conv ON interview_sessions(conversation_id);
+
+                CREATE TABLE IF NOT EXISTS resume_projects (
+                    id TEXT PRIMARY KEY,
+                    conversation_id TEXT UNIQUE,
+                    title TEXT DEFAULT 'Professional Resume',
+                    template_id TEXT DEFAULT 'ats-professional',
+                    target_company TEXT DEFAULT '',
+                    target_role TEXT DEFAULT '',
+                    job_description TEXT DEFAULT '',
+                    resume_data_json TEXT DEFAULT '{}',
+                    ats_analysis_json TEXT DEFAULT '{}',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_resume_conv ON resume_projects(conversation_id);
             """)
 
             # Schema migration check: ensure conversation_files has feature_id column
@@ -557,6 +578,141 @@ class ConversationRepository:
                 item = dict(r)
                 item["setup_data"] = json.loads(item.get("setup_data_json") or "{}")
                 item["metrics"] = json.loads(item.get("metrics_json") or "{}")
+                results.append(item)
+            return results
+
+    # ========================================================
+    # RESUME BUILDER METHODS
+    # ========================================================
+    def create_or_get_resume_project(
+        self,
+        conversation_id: str,
+        title: str = "Professional Resume",
+        template_id: str = "ats-professional",
+        target_company: str = "",
+        target_role: str = "",
+        job_description: str = "",
+        resume_data: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        existing = self.get_resume_project(conversation_id)
+        if existing:
+            return existing
+
+        now = datetime.now(timezone.utc).isoformat()
+        project_id = f"res_{uuid.uuid4().hex[:12]}"
+        default_resume_data = resume_data or {
+            "personalInfo": {
+                "fullName": "",
+                "email": "",
+                "phone": "",
+                "location": "",
+                "linkedin": "",
+                "github": "",
+                "portfolio": ""
+            },
+            "summary": "",
+            "education": [],
+            "skills": {
+                "languages": [],
+                "frameworks": [],
+                "tools": [],
+                "databases": [],
+                "cloud": []
+            },
+            "experience": [],
+            "projects": [],
+            "certifications": [],
+            "achievements": []
+        }
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO resume_projects (
+                    id, conversation_id, title, template_id, target_company,
+                    target_role, job_description, resume_data_json,
+                    ats_analysis_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                project_id,
+                conversation_id,
+                title,
+                template_id,
+                target_company,
+                target_role,
+                job_description,
+                json.dumps(default_resume_data),
+                json.dumps({}),
+                now,
+                now
+            ))
+            conn.commit()
+
+        return self.get_resume_project(conversation_id)
+
+    def get_resume_project(self, conv_or_proj_id: str) -> Optional[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM resume_projects WHERE id = ? OR conversation_id = ?",
+                (conv_or_proj_id, conv_or_proj_id)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            res = dict(row)
+            res["resume_data"] = json.loads(res.get("resume_data_json") or "{}")
+            res["ats_analysis"] = json.loads(res.get("ats_analysis_json") or "{}")
+            return res
+
+    def update_resume_project(self, conv_or_proj_id: str, updates: Dict[str, Any]) -> bool:
+        project = self.get_resume_project(conv_or_proj_id)
+        if not project:
+            return False
+
+        now = datetime.now(timezone.utc).isoformat()
+        fields = []
+        values = []
+
+        simple_fields = ["title", "template_id", "target_company", "target_role", "job_description"]
+        for f in simple_fields:
+            if f in updates:
+                fields.append(f"{f} = ?")
+                values.append(updates[f])
+
+        if "resume_data" in updates:
+            fields.append("resume_data_json = ?")
+            values.append(json.dumps(updates["resume_data"]))
+
+        if "ats_analysis" in updates:
+            fields.append("ats_analysis_json = ?")
+            values.append(json.dumps(updates["ats_analysis"]))
+
+        fields.append("updated_at = ?")
+        values.append(now)
+
+        values.append(project["id"])
+
+        query = f"UPDATE resume_projects SET {', '.join(fields)} WHERE id = ?"
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, values)
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def list_resume_projects(self, limit: int = 30) -> List[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM resume_projects ORDER BY updated_at DESC LIMIT ?",
+                (limit,)
+            )
+            rows = cursor.fetchall()
+            results = []
+            for r in rows:
+                item = dict(r)
+                item["resume_data"] = json.loads(item.get("resume_data_json") or "{}")
+                item["ats_analysis"] = json.loads(item.get("ats_analysis_json") or "{}")
                 results.append(item)
             return results
 

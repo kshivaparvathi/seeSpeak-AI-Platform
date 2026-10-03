@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { HomePage } from './pages/HomePage';
 import { InterviewSession } from './pages/InterviewSession';
 import { SupportSession } from './pages/SupportSession';
+import { ScreenAssistantSession } from './pages/ScreenAssistantSession';
+import { ResumeBuilderSession } from './pages/ResumeBuilderSession';
 import { FeatureWorkspace } from './pages/FeatureWorkspace';
 import { ConversationSidebar } from './components/ConversationSidebar';
 import { AIIntro } from './components/AIIntro';
@@ -282,6 +284,52 @@ export const App: React.FC = () => {
               'customer-support': newConv.id,
             }));
             const targetFeature = filterByActiveFeature ? 'customer-support' : undefined;
+            fetchConversations(searchQuery, targetFeature);
+          }}
+          initialPrompt={initialPrompt}
+        />
+      );
+    }
+
+    if (currentFeatureId === 'ai-screen-assistant') {
+      return (
+        <ScreenAssistantSession
+          key={activeConversationId || 'new_screen_assistant'}
+          onBack={() => navigate('/')}
+          selectedLanguage={selectedLanguage}
+          onSelectLanguage={setSelectedLanguage}
+          onSelectFeature={(r) => navigate(r)}
+          onNewConversation={handleNewConversation}
+          conversationId={activeConversationId}
+          onConversationCreated={(newConv) => {
+            setActiveConversationByFeature((prev) => ({
+              ...prev,
+              'ai-screen-assistant': newConv.id,
+            }));
+            const targetFeature = filterByActiveFeature ? 'ai-screen-assistant' : undefined;
+            fetchConversations(searchQuery, targetFeature);
+          }}
+          initialPrompt={initialPrompt}
+        />
+      );
+    }
+
+    if (currentFeatureId === 'ai-resume-builder') {
+      return (
+        <ResumeBuilderSession
+          key={activeConversationId || 'new_resume_builder'}
+          onBack={() => navigate('/')}
+          selectedLanguage={selectedLanguage}
+          onSelectLanguage={setSelectedLanguage}
+          onSelectFeature={(r) => navigate(r)}
+          onNewConversation={handleNewConversation}
+          conversationId={activeConversationId}
+          onConversationCreated={(newConv) => {
+            setActiveConversationByFeature((prev) => ({
+              ...prev,
+              'ai-resume-builder': newConv.id,
+            }));
+            const targetFeature = filterByActiveFeature ? 'ai-resume-builder' : undefined;
             fetchConversations(searchQuery, targetFeature);
           }}
           initialPrompt={initialPrompt}
