@@ -1,6 +1,11 @@
-# 🎙️ seeSpeak AI — Real-Time Multimodal Voice & Multilingual Workspaces
+# 🎙️ seeSpeak AI Platform — Real-Time Multimodal Voice & AI Workspaces
 
-seeSpeak AI is a modern full-stack application featuring **Real-Time Gemini Live Voice (24kHz)**, **6 Specialized Isolated Workspaces**, **Context-Grounded Document & Visual Intelligence**, and **11 Academic & Study Quick Actions** with full multi-language native script support.
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://seespeak-ai-platform.onrender.com)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/kshivaparvathi/seeSpeak-AI-Platform)
+
+> 🚀 **Live Production Application**: [https://seespeak-ai-platform.onrender.com](https://seespeak-ai-platform.onrender.com)
+
+seeSpeak AI Platform is a modern full-stack application featuring **Real-Time Gemini Live Voice (24kHz)**, **Dedicated Isolated Workspaces** (including AI Screen Assistant, AI Resume Builder, and AI Presentation Maker), **Context-Grounded Document & Visual Intelligence**, and **Academic & Study Quick Actions** with full multi-language native script support.
 
 ---
 
